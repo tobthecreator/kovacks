@@ -1,10 +1,37 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <editline/readline.h>
+#include <stdbool.h>
 #include "mpc.h"
 
-long eval(mpc_ast_t *t);
-long eval_op(long x, char *op, long y);
+// Kovacs value
+typedef struct
+{
+    int type;
+    long num;
+    int err;
+} kval;
+
+enum
+{
+    KVAL_NUM,
+    KVAL_ERR
+};
+
+enum
+{
+    KERR_DIV_ZERO,
+    KERR_BAD_OP,
+    KERR_BAD_NUM
+};
+
+kval eval(mpc_ast_t *t);
+kval eval_op(kval x, char *op, kval y);
+kval kval_num(long num);
+kval kval_err(int errorCode);
+void kval_println(kval kv);
+void kval_print(kval kv);
+void kval_print_error(int errorCode);
 
 int main()
 {
@@ -55,8 +82,8 @@ int main()
             mpc_ast_print(result.output);
             printf("\n\n");
 
-            long evaluatedOutput = eval(result.output);
-            printf("%li\n", evaluatedOutput);
+            kval evaluatedOutput = eval(result.output);
+            kval_println(evaluatedOutput);
 
             printf("\n\n");
             mpc_ast_delete(result.output);
@@ -75,7 +102,7 @@ int main()
 }
 
 // Evaluate an abstract syntax tree of type mpc_ast_t
-long eval(mpc_ast_t *ast)
+kval eval(mpc_ast_t *ast)
 {
     /*
         strstr takes two char* pointers and returns a pointer or 0
@@ -83,17 +110,25 @@ long eval(mpc_ast_t *ast)
         If r = 0, the second string is not a substring.
         If r != 0, r is a pointer to the location of the substring
     */
-    // If this tags contains a number, convert the string contents to an integer
+    // Base case: If this tag contains a number, convert the string contents to an integer
     if (strstr(ast->tag, "number"))
     {
-        return atoi(ast->contents);
+        // errno is from <errno.h>, a header that provides error codes and their constants
+        errno = 0;
+        long x = strtol(ast->contents, NULL, 10);
+
+        bool x_out_of_range = errno == ERANGE;
+
+        return x_out_of_range
+                   ? kval_err(KERR_BAD_NUM)
+                   : kval_num(x);
     }
 
     // Operators are always second children
     char *op = ast->children[1]->contents;
 
     // The 3rd child is the first child being operated on
-    long x = eval(ast->children[2]);
+    kval x = eval(ast->children[2]);
 
     int i = 3;
     while (strstr(ast->children[i]->tag, "expr"))
@@ -105,25 +140,97 @@ long eval(mpc_ast_t *ast)
     return x;
 }
 
-long eval_op(long x, char *op, long y)
+kval eval_op(kval x, char *op, kval y)
 {
+    if (x.type == KVAL_ERR || y.type == KVAL_ERR)
+    {
+        return (x.type == KVAL_ERR) ? x : y;
+    }
+
+    long x_val = x.num;
+    long y_val = y.num;
+    long op_result;
+
     switch (*op)
     {
     case '+':
-        return x + y;
-
+        op_result = x_val + y_val;
+        break;
     case '-':
-        return x - y;
-
+        op_result = x_val - y_val;
+        break;
     case '*':
-        return x * y;
-
+        op_result = x_val * y_val;
+        break;
     case '/':
-        return x / y;
+        if (y_val == 0)
+        {
+            return kval_err(KERR_DIV_ZERO);
+        }
 
+        op_result = x_val / y_val;
+        break;
     default:
-        return 0;
+        return kval_err(KERR_BAD_OP);
     }
 
-    return 0;
+    return kval_num(op_result);
+}
+
+kval kval_num(long num)
+{
+    kval kv;
+
+    kv.type = KVAL_NUM;
+    kv.num = num;
+
+    return kv;
+}
+
+kval kval_err(int errorCode)
+{
+    kval kv;
+
+    kv.type = KVAL_ERR;
+    kv.err = errorCode;
+
+    return kv;
+}
+
+void kval_println(kval kv)
+{
+    kval_print(kv);
+    putchar('\n');
+}
+
+void kval_print(kval kv)
+{
+    switch (kv.type)
+    {
+    case KVAL_NUM:
+        printf("%li", kv.num);
+        return;
+    case KVAL_ERR:
+        kval_print_error(kv.err);
+        return;
+    }
+}
+
+void kval_print_error(int errorCode)
+{
+    switch (errorCode)
+    {
+    case KERR_BAD_NUM:
+        printf("Error: Invalid number");
+        return;
+    case KERR_BAD_OP:
+        printf("Error: Invalid operation");
+        return;
+    case KERR_DIV_ZERO:
+        printf("Error: Division by zero");
+        return;
+    default:
+        printf("Error: Unknown");
+        return;
+    }
 }
