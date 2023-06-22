@@ -81,7 +81,8 @@ int main()
     return 0;
 }
 
-long eval(mpc_ast_t *t)
+// Evaluate an abstract syntax tree of type mpc_ast_t
+long eval(mpc_ast_t *ast)
 {
     /*
         strstr takes two char* pointers and returns a pointer or 0
@@ -90,20 +91,21 @@ long eval(mpc_ast_t *t)
         If r != 0, r is a pointer to the location of the substring
     */
     // If this tags contains a number, convert the string contents to an integer
-    if (strstr(t->tag, "number"))
+    if (strstr(ast->tag, "number"))
     {
-        return atoi(t->contents);
+        return atoi(ast->contents);
     }
 
     // Operators are always second children
-    char *op = t->children[1]->contents;
+    char *op = ast->children[1]->contents;
 
-    long x = eval(t->children[2]);
+    // The 3rd child is the first child being operated on
+    long x = eval(ast->children[2]);
 
     int i = 3;
-    while (strstr(t->children[i]->tag, "expr"))
+    while (strstr(ast->children[i]->tag, "expr"))
     {
-        x = eval_op(x, op, eval(t->children[i]));
+        x = eval_op(x, op, eval(ast->children[i]));
         i++;
     }
 
