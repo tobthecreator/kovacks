@@ -51,21 +51,14 @@ int main()
         // If successful, mpc_parse returns 1
         if (mpc_parse("<stdin>", input, Kovacs, &result)) // Passes r via memory address to be written directly to
         {
-            // mpc_ast_print(result.output);
-
-            // mpc_ast_t *ast = result.output;
-            // printf("ast.Tag: %s\n", ast->tag);
-            // printf("ast.Contents: %s\n", ast->contents);
-            // printf("ast.Number of children: %i\n", ast->children_num);
-
-            // mpc_ast_t *child0 = ast->children[0];
-            // printf("ast.children[0].Tag: %s\n", child0->tag);
-            // printf("ast.children[0].Contents: %s\n", child0->contents);
-            // printf("ast.children[0].Number of children: %i\n", child0->children_num);
+            // Print parsed results
+            mpc_ast_print(result.output);
+            printf("\n\n");
 
             long evaluatedOutput = eval(result.output);
-
             printf("%li\n", evaluatedOutput);
+
+            printf("\n\n");
             mpc_ast_delete(result.output);
         }
         else
