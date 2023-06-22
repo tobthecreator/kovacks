@@ -3,6 +3,9 @@
 #include <editline/readline.h>
 #include "mpc.h"
 
+long eval(mpc_ast_t *t);
+long eval_op(long x, char *op, long y);
+
 int main()
 {
     /* Create parsers */
@@ -26,7 +29,7 @@ int main()
             number   : /-?[0-9]+/ ;                             \
             operator : '+' | '-' | '*' | '/' ;                  \
             expr     : <number> | '(' <operator> <expr>+ ')' ;  \
-            kovacs    : /^/ <operator> <expr>+ /$/ ;            \
+            kovacs   : /^/ <operator> <expr>+ /$/ ;             \
         ",
         Number, Operator, Expr, Kovacs);
 
@@ -48,7 +51,21 @@ int main()
         // If successful, mpc_parse returns 1
         if (mpc_parse("<stdin>", input, Kovacs, &result)) // Passes r via memory address to be written directly to
         {
-            mpc_ast_print(result.output);
+            // mpc_ast_print(result.output);
+
+            // mpc_ast_t *ast = result.output;
+            // printf("ast.Tag: %s\n", ast->tag);
+            // printf("ast.Contents: %s\n", ast->contents);
+            // printf("ast.Number of children: %i\n", ast->children_num);
+
+            // mpc_ast_t *child0 = ast->children[0];
+            // printf("ast.children[0].Tag: %s\n", child0->tag);
+            // printf("ast.children[0].Contents: %s\n", child0->contents);
+            // printf("ast.children[0].Number of children: %i\n", child0->children_num);
+
+            long evaluatedOutput = eval(result.output);
+
+            printf("%li\n", evaluatedOutput);
             mpc_ast_delete(result.output);
         }
         else
@@ -61,5 +78,57 @@ int main()
     }
 
     mpc_cleanup(4, Number, Operator, Expr, Kovacs);
+    return 0;
+}
+
+long eval(mpc_ast_t *t)
+{
+    /*
+        strstr takes two char* pointers and returns a pointer or 0
+
+        If r = 0, the second string is not a substring.
+        If r != 0, r is a pointer to the location of the substring
+    */
+    // If this tags contains a number, convert the string contents to an integer
+    if (strstr(t->tag, "number"))
+    {
+        return atoi(t->contents);
+    }
+
+    // Operators are always second children
+    char *op = t->children[1]->contents;
+
+    long x = eval(t->children[2]);
+
+    int i = 3;
+    while (strstr(t->children[i]->tag, "expr"))
+    {
+        x = eval_op(x, op, eval(t->children[i]));
+        i++;
+    }
+
+    return x;
+}
+
+long eval_op(long x, char *op, long y)
+{
+    switch (*op)
+    {
+    case '+':
+        return x + y;
+
+    case '-':
+        return x - y;
+
+    case '*':
+        return x * y;
+
+    case '/':
+        return x / y;
+
+    default:
+        return 0;
+    }
+
     return 0;
 }
