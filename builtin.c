@@ -2,38 +2,45 @@
 #include "errors.h"
 #include "kval.h"
 #include "builtin.h"
+#include "types.h"
 
-kval *builtin(kval *a, char *func)
+kval *builtin(kenv *e, kval *a, char *func)
 {
     if (strcmp("list", func) == 0)
     {
-        return builtin_list(a);
+        return builtin_list(e, a);
     }
+
     if (strcmp("head", func) == 0)
     {
-        return builtin_head(a);
+        return builtin_head(e, a);
     }
+
     if (strcmp("tail", func) == 0)
     {
-        return builtin_tail(a);
+        return builtin_tail(e, a);
     }
+
     if (strcmp("join", func) == 0)
     {
-        return builtin_join(a);
+        return builtin_join(e, a);
     }
+
     if (strcmp("eval", func) == 0)
     {
-        return builtin_eval(a);
+        return builtin_eval(e, a);
     }
+
     if (strstr("+-/*", func))
     {
-        return builtin_op(a, func);
+        return builtin_op(e, a, func);
     }
+
     kval_del(a);
     return kval_err("Unknown Function!");
 }
 
-kval *builtin_op(kval *kv, char *op)
+kval *builtin_op(kenv *e, kval *kv, char *op)
 {
     /* Ensure all arguments are numbers */
     for (int i = 0; i < kv->count; i++)
@@ -93,7 +100,7 @@ kval *builtin_op(kval *kv, char *op)
     return x;
 }
 
-kval *builtin_head(kval *a)
+kval *builtin_head(kenv *e, kval *a)
 {
     LASSERT(a, a->count == 1,
             "Function 'head' passed too many arguments!");
@@ -112,7 +119,7 @@ kval *builtin_head(kval *a)
     return v;
 }
 
-kval *builtin_tail(kval *a)
+kval *builtin_tail(kenv *e, kval *a)
 {
     LASSERT(a, a->count == 1,
             "Function 'tail' passed too many arguments!");
@@ -128,13 +135,13 @@ kval *builtin_tail(kval *a)
     return v;
 }
 
-kval *builtin_list(kval *a)
+kval *builtin_list(kenv *e, kval *a)
 {
     a->type = KVAL_QEXPR;
     return a;
 }
 
-kval *builtin_eval(kval *a)
+kval *builtin_eval(kenv *e, kval *a)
 {
     LASSERT(a, a->count == 1,
             "Function 'eval' passed too many arguments!");
@@ -144,10 +151,11 @@ kval *builtin_eval(kval *a)
 
     kval *x = kval_take(a, 0);
     x->type = KVAL_SEXPR;
-    return kval_eval(x);
+
+    return kval_eval(e, x);
 }
 
-kval *builtin_join(kval *a)
+kval *builtin_join(kenv *e, kval *a)
 {
 
     for (int i = 0; i < a->count; i++)
@@ -165,4 +173,24 @@ kval *builtin_join(kval *a)
 
     kval_del(a);
     return x;
+}
+
+kval *builtin_add(kenv *e, kval *a)
+{
+    return builtin_op(e, a, "+");
+}
+
+kval *builtin_sub(kenv *e, kval *a)
+{
+    return builtin_op(e, a, "-");
+}
+
+kval *builtin_mul(kenv *e, kval *a)
+{
+    return builtin_op(e, a, "*");
+}
+
+kval *builtin_div(kenv *e, kval *a)
+{
+    return builtin_op(e, a, "/");
 }

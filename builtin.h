@@ -3,13 +3,18 @@
 
 #include <string.h>
 #include "kval.h"
+#include "types.h"
 
-kval *builtin_op(kval *kv, char *op);
-kval *builtin_head(kval *a);
-kval *builtin_tail(kval *a);
-kval *builtin_list(kval *a);
-kval *builtin_eval(kval *a);
-kval *builtin_join(kval *a);
-kval *builtin(kval *a, char *func);
+kval *builtin_op(kenv *e, kval *kv, char *op);
+kval *builtin_head(kenv *e, kval *a);
+kval *builtin_tail(kenv *e, kval *a);
+kval *builtin_list(kenv *e, kval *a);
+kval *builtin_eval(kenv *e, kval *a);
+kval *builtin_join(kenv *e, kval *a);
+kval *builtin(kenv *e, kval *a, char *func);
+kval *builtin_add(kenv *e, kval *a);
+kval *builtin_sub(kenv *e, kval *a);
+kval *builtin_mul(kenv *e, kval *a);
+kval *builtin_div(kenv *e, kval *a);
 
 #endif

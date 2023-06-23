@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include "mpc.h"
 #include "kval.h"
+#include "types.h"
+#include "kenv.h"
 
 int main()
 {
@@ -19,9 +21,7 @@ int main()
         MPCA_LANG_DEFAULT,
         "                                                       \
             number  : /-?[0-9]+/ ;                              \
-            symbol  : '+' | '-' | '*' | '/' | \"tail\"          \
-                    | \"list\" | \"head\" | \"join\"            \
-                    | \"eval\" ;                                \
+            symbol  : /[a-zA-Z0-9_+\\-*\\/\\\\=<>!&]+/ ;        \
             sexpr   : '(' <expr>* ')' ;                         \
             qexpr   : '{' <expr>* '}' ;                         \
             expr    : <number> | <symbol> | <sexpr> | <qexpr> ; \
@@ -31,6 +31,10 @@ int main()
 
     puts("Kovacs Version 0.0.0.0.1");
     puts("Press Crtl+C to Exit\n");
+
+    // Build REPL Environment
+    kenv *e = kenv_init();
+    kenv_add_builtins(e);
 
     while (1)
     {
@@ -51,14 +55,10 @@ int main()
             mpc_ast_print(result.output);
             printf("\n\n");
 
-            kval *x = kval_eval(kval_read(result.output));
+            kval *x = kval_eval(e, kval_read(result.output));
             kval_println(x);
 
-            // kval *y = kval_eval(x);
-            // kval_println(y);
-
             kval_del(x);
-            // kval_del(y);
 
             printf("\n\n");
             mpc_ast_delete(result.output);
@@ -71,6 +71,8 @@ int main()
 
         free(input);
     }
+
+    kenv_del(e);
 
     mpc_cleanup(6, Number, Symbol, Sexpr, Qexpr, Expr, Kovacs);
     return 0;

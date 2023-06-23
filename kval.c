@@ -3,6 +3,8 @@
 #include "kval.h"
 #include "errors.h"
 #include "builtin.h"
+#include "types.h"
+#include "kenv.h"
 
 kval *kval_num(long num)
 {
@@ -58,22 +60,39 @@ kval *kval_err(char *errorMsg)
     return kv;
 }
 
-kval *kval_eval(kval *kv)
+kval *kval_fun(kbuiltin func)
 {
+    kval *kv = malloc(sizeof(kval));
+
+    kv->type = KVAL_FUN;
+    kv->fun = func;
+
+    return kv;
+}
+
+kval *kval_eval(kenv *e, kval *kv)
+{
+    if (kv->type == KVAL_SYM)
+    {
+        kval *x = kenv_get(e, kv);
+        kval_del(kv);
+        return x;
+    }
+
     if (kv->type == KVAL_SEXPR)
     {
-        return kval_eval_sexpr(kv);
+        return kval_eval_sexpr(e, kv);
     }
 
     return kv;
 }
 
-kval *kval_eval_sexpr(kval *kv)
+kval *kval_eval_sexpr(kenv *e, kval *kv)
 {
     // Evaluate cells
     for (int i = 0; i < kv->count; i++)
     {
-        kv->cells[i] = kval_eval(kv->cells[i]);
+        kv->cells[i] = kval_eval(e, kv->cells[i]);
     }
 
     // Check for errors
@@ -100,15 +119,16 @@ kval *kval_eval_sexpr(kval *kv)
     }
 
     kval *f = kval_pop(kv, 0);
-    if (f->type != KVAL_SYM)
+    if (f->type != KVAL_FUN)
     {
         kval_del(f);
         kval_del(kv);
 
-        return kval_err(KERR_BAD_SEXPR);
+        // TODO: proper error code here
+        return kval_err("First child is not a function");
     }
 
-    kval *result = builtin(kv, f->sym);
+    kval *result = f->fun(e, kv);
     kval_del(f);
 
     return result;
@@ -153,18 +173,25 @@ void kval_print(kval *kv)
     case KVAL_NUM:
         printf("%li", kv->num);
         break;
+
     case KVAL_ERR:
         printf("Error: %s", kv->err);
         break;
+
     case KVAL_SYM:
         printf("%s", kv->sym);
         break;
+
     case KVAL_SEXPR:
         kval_expr_print(kv, '(', ')');
         break;
 
     case KVAL_QEXPR:
         kval_expr_print(kv, '{', '}');
+        break;
+
+    case KVAL_FUN:
+        printf("<function>");
         break;
     }
 }
@@ -212,6 +239,7 @@ void kval_del(kval *kv)
         break;
 
     case KVAL_NUM:
+    case KVAL_FUN:
     default:
         break;
     }
@@ -295,5 +323,49 @@ kval *kval_join(kval *x, kval *y)
 
     /* Delete the empty 'y' and return 'x' */
     kval_del(y);
+    return x;
+}
+
+kval *kval_copy(kval *v)
+{
+
+    kval *x = malloc(sizeof(kval));
+    x->type = v->type;
+
+    switch (v->type)
+    {
+
+    /* Copy functions and numbers directly */
+    case KVAL_FUN:
+        x->fun = v->fun;
+        break;
+
+    case KVAL_NUM:
+        x->num = v->num;
+        break;
+
+    /* Copy strings using malloc and strcpy */
+    case KVAL_ERR:
+        x->err = malloc(strlen(v->err) + 1);
+        strcpy(x->err, v->err);
+        break;
+
+    case KVAL_SYM:
+        x->sym = malloc(strlen(v->sym) + 1);
+        strcpy(x->sym, v->sym);
+        break;
+
+    /* Copy lists by copying each sub-expression */
+    case KVAL_SEXPR:
+    case KVAL_QEXPR:
+        x->count = v->count;
+        x->cells = malloc(sizeof(kval *) * x->count);
+        for (int i = 0; i < x->count; i++)
+        {
+            x->cells[i] = kval_copy(v->cells[i]);
+        }
+        break;
+    }
+
     return x;
 }
