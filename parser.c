@@ -29,7 +29,8 @@ enum
     KVAL_NUM,
     KVAL_ERR,
     KVAL_SYM,
-    KVAL_SEXPR
+    KVAL_SEXPR,
+    KVAL_QEXPR
 };
 
 kval eval(mpc_ast_t *t);
@@ -61,6 +62,7 @@ int main()
     mpc_parser_t *Sexpr = mpc_new("sexpr");
     mpc_parser_t *Expr = mpc_new("expr");
     mpc_parser_t *Kovacs = mpc_new("kovacs");
+    mpc_parser_t *Qexpr = mpc_new("qexpr");
 
     /* Define them as a part of the language */
     /*
@@ -74,13 +76,16 @@ int main()
     mpca_lang(
         MPCA_LANG_DEFAULT,
         "                                                       \
-            number   : /-?[0-9]+/ ;                             \
-            symbol : '+' | '-' | '*' | '/' ;                    \
-            sexpr  : '(' <expr>* ')' ;                          \
-            expr   : <number> | <symbol> | <sexpr> ;            \
-            kovacs   : /^/ <expr>+ /$/ ;             \
+            number  : /-?[0-9]+/ ;                              \
+            symbol  : '+' | '-' | '*' | '/' | \"tail\"          \
+                    | \"list\" | \"head\" | \"join\"            \
+                    | \"eval\" ;                                \
+            sexpr   : '(' <expr>* ')' ;                         \
+            qexpr   : '{' <expr>* '}' ;                         \
+            expr    : <number> | <symbol> | <sexpr> | <qexpr> ; \
+            kovacs  : /^/ <expr>+ /$/ ;                         \
         ",
-        Number, Symbol, Sexpr, Expr, Kovacs);
+        Number, Symbol, Sexpr, Qexpr, Expr, Kovacs);
 
     puts("Kovacs Version 0.0.0.0.1");
     puts("Press Crtl+C to Exit\n");
@@ -125,7 +130,7 @@ int main()
         free(input);
     }
 
-    mpc_cleanup(4, Number, Symbol, Sexpr, Expr, Kovacs);
+    mpc_cleanup(4, Number, Symbol, Sexpr, Qexpr, Expr, Kovacs);
     return 0;
 }
 
@@ -302,6 +307,17 @@ kval *kval_sexpr(void)
     return kv;
 }
 
+kval *kval_qexpr(void)
+{
+    kval *kv = malloc(sizeof(kval));
+
+    kv->type = KVAL_QEXPR;
+    kv->count = 0;
+    kv->cells = NULL;
+
+    return kv;
+}
+
 kval *kval_err(char *errorMsg)
 {
     kval *kv = malloc(sizeof(kval));
@@ -335,6 +351,10 @@ void kval_print(kval *kv)
         break;
     case KVAL_SEXPR:
         kval_expr_print(kv, '(', ')');
+        break;
+
+    case KVAL_QEXPR:
+        kval_expr_print(kv, '{', '}');
         break;
     }
 }
@@ -388,8 +408,9 @@ void kval_del(kval *kv)
         free(kv->sym);
         break;
 
-    /* If Sexpr then delete all elements inside */
+    /* Delete all elements inside */
     case KVAL_SEXPR:
+    case KVAL_QEXPR:
         for (int i = 0; i < kv->count; i++)
         {
             kval_del(kv->cells[i]);
@@ -437,6 +458,8 @@ kval *kval_read(mpc_ast_t *ast)
         if (
             strcmp(ast->children[i]->contents, "(") == 0 ||
             strcmp(ast->children[i]->contents, ")") == 0 ||
+            strcmp(ast->children[i]->contents, "{") == 0 ||
+            strcmp(ast->children[i]->contents, "}") == 0 ||
             strcmp(ast->children[i]->tag, "regex") == 0)
         {
             continue;
