@@ -6,6 +6,7 @@
 #include "kval.h"
 #include "types.h"
 #include "kenv.h"
+#include "quotes.h"
 
 int main()
 {
@@ -30,6 +31,7 @@ int main()
         Number, Symbol, Sexpr, Qexpr, Expr, Kovacs);
 
     puts("Kovacs Version 0.0.0.0.1");
+    print_altered_carbon_quote();
     puts("Press Crtl+C to Exit\n");
 
     // Build REPL Environment

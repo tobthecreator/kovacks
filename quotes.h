@@ -1,0 +1,1 @@
+void print_altered_carbon_quote();
