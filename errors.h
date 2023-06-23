@@ -8,4 +8,11 @@
 #define KERR_BAD_SEXPR "Invalid S-expression"
 #define KERR_UNKNOWN "Unknown"
 
+#define LASSERT(args, cond, err) \
+    if (!(cond))                 \
+    {                            \
+        kval_del(args);          \
+        return kval_err(err);    \
+    }
+
 #endif

@@ -72,6 +72,6 @@ int main()
         free(input);
     }
 
-    mpc_cleanup(4, Number, Symbol, Sexpr, Qexpr, Expr, Kovacs);
+    mpc_cleanup(6, Number, Symbol, Sexpr, Qexpr, Expr, Kovacs);
     return 0;
 }

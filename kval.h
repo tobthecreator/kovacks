@@ -43,5 +43,6 @@ kval *kval_eval_sexpr(kval *kv);
 kval *kval_eval(kval *kv);
 kval *kval_pop(kval *kv, int i);
 kval *kval_take(kval *v, int i);
+kval *kval_join(kval *x, kval *y);
 
 #endif

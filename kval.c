@@ -99,17 +99,17 @@ kval *kval_eval_sexpr(kval *kv)
         return kval_take(kv, 0);
     }
 
-    kval *cell0 = kval_pop(kv, 0);
-    if (cell0->type != KVAL_SYM)
+    kval *f = kval_pop(kv, 0);
+    if (f->type != KVAL_SYM)
     {
-        kval_del(cell0);
+        kval_del(f);
         kval_del(kv);
 
         return kval_err(KERR_BAD_SEXPR);
     }
 
-    kval *result = builtin_op(kv, cell0->sym);
-    kval_del(cell0);
+    kval *result = builtin(kv, f->sym);
+    kval_del(f);
 
     return result;
 }
@@ -282,4 +282,18 @@ kval *kval_read_num(mpc_ast_t *ast)
     return x_out_of_range
                ? kval_err(KERR_BAD_NUM)
                : kval_num(x);
+}
+
+kval *kval_join(kval *x, kval *y)
+{
+
+    /* For each cell in 'y' add it to 'x' */
+    while (y->count)
+    {
+        x = kval_add(x, kval_pop(y, 0));
+    }
+
+    /* Delete the empty 'y' and return 'x' */
+    kval_del(y);
+    return x;
 }
