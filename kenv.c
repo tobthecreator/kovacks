@@ -27,7 +27,6 @@ void kenv_del(kenv *e)
 
 kval *kenv_get(kenv *e, kval *k)
 {
-
     // Look through known variables
     for (int i = 0; i < e->count; i++)
     {
@@ -91,4 +90,7 @@ void kenv_add_builtins(kenv *e)
     kenv_add_builtin(e, "-", builtin_sub);
     kenv_add_builtin(e, "*", builtin_mul);
     kenv_add_builtin(e, "/", builtin_div);
+
+    /* Functions... Functions */
+    kenv_add_builtin(e, "def", builtin_def);
 }

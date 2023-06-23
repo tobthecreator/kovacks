@@ -3,6 +3,7 @@
 #include "kval.h"
 #include "builtin.h"
 #include "types.h"
+#include "kenv.h"
 
 kval *builtin(kenv *e, kval *a, char *func)
 {
@@ -102,14 +103,14 @@ kval *builtin_op(kenv *e, kval *kv, char *op)
 
 kval *builtin_head(kenv *e, kval *a)
 {
-    LASSERT(a, a->count == 1,
-            "Function 'head' passed too many arguments!");
+    K_ASSERT(a, a->count == 1,
+             "Function 'head' passed too many arguments!");
 
-    LASSERT(a, a->cells[0]->type == KVAL_QEXPR,
-            "Function 'head' passed incorrect type!");
+    K_ASSERT(a, a->cells[0]->type == KVAL_QEXPR,
+             "Function 'head' passed incorrect type!");
 
-    LASSERT(a, a->cells[0]->count != 0,
-            "Function 'head' passed {}!");
+    K_ASSERT(a, a->cells[0]->count != 0,
+             "Function 'head' passed {}!");
 
     kval *v = kval_take(a, 0);
     while (v->count > 1)
@@ -121,14 +122,14 @@ kval *builtin_head(kenv *e, kval *a)
 
 kval *builtin_tail(kenv *e, kval *a)
 {
-    LASSERT(a, a->count == 1,
-            "Function 'tail' passed too many arguments!");
+    K_ASSERT(a, a->count == 1,
+             "Function 'tail' passed too many arguments!");
 
-    LASSERT(a, a->cells[0]->type == KVAL_QEXPR,
-            "Function 'tail' passed incorrect type!");
+    K_ASSERT(a, a->cells[0]->type == KVAL_QEXPR,
+             "Function 'tail' passed incorrect type!");
 
-    LASSERT(a, a->cells[0]->count != 0,
-            "Function 'tail' passed {}!");
+    K_ASSERT(a, a->cells[0]->count != 0,
+             "Function 'tail' passed {}!");
 
     kval *v = kval_take(a, 0);
     kval_del(kval_pop(v, 0));
@@ -143,11 +144,11 @@ kval *builtin_list(kenv *e, kval *a)
 
 kval *builtin_eval(kenv *e, kval *a)
 {
-    LASSERT(a, a->count == 1,
-            "Function 'eval' passed too many arguments!");
+    K_ASSERT(a, a->count == 1,
+             "Function 'eval' passed too many arguments!");
 
-    LASSERT(a, a->cells[0]->type == KVAL_QEXPR,
-            "Function 'eval' passed incorrect type!");
+    K_ASSERT(a, a->cells[0]->type == KVAL_QEXPR,
+             "Function 'eval' passed incorrect type!");
 
     kval *x = kval_take(a, 0);
     x->type = KVAL_SEXPR;
@@ -160,8 +161,8 @@ kval *builtin_join(kenv *e, kval *a)
 
     for (int i = 0; i < a->count; i++)
     {
-        LASSERT(a, a->cells[i]->type == KVAL_QEXPR,
-                "Function 'join' passed incorrect type.");
+        K_ASSERT(a, a->cells[i]->type == KVAL_QEXPR,
+                 "Function 'join' passed incorrect type.");
     }
 
     kval *x = kval_pop(a, 0);
@@ -193,4 +194,26 @@ kval *builtin_mul(kenv *e, kval *a)
 kval *builtin_div(kenv *e, kval *a)
 {
     return builtin_op(e, a, "/");
+}
+
+kval *builtin_def(kenv *e, kval *a)
+{
+    K_ASSERT(a, a->cells[0]->type == KVAL_QEXPR, "Function def passed incorrect type");
+
+    kval *syms = a->cells[0];
+
+    for (int i = 0; i < syms->count; i++)
+    {
+        K_ASSERT(a, a->cells[i]->type != KVAL_SYM, "Function def cannot define non-symbol");
+    }
+
+    K_ASSERT(a, syms->count == a->count - 1, "Function def cannot define incorrect number of values to symbols");
+
+    for (int i = 0; i < syms->count; i++)
+    {
+        kenv_put(e, syms->cells[i], a->cells[i + 1]);
+    }
+
+    kval_del(a);
+    return kval_sexpr();
 }

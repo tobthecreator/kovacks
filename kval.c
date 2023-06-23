@@ -72,8 +72,11 @@ kval *kval_fun(kbuiltin func)
 
 kval *kval_eval(kenv *e, kval *kv)
 {
+    printf("kval_eval\n");
+
     if (kv->type == KVAL_SYM)
     {
+        printf("kval_eval.is_kval_sym\n");
         kval *x = kenv_get(e, kv);
         kval_del(kv);
         return x;
@@ -81,6 +84,7 @@ kval *kval_eval(kenv *e, kval *kv)
 
     if (kv->type == KVAL_SEXPR)
     {
+        printf("kval_eval.KVAL_SEXPR\n");
         return kval_eval_sexpr(e, kv);
     }
 
@@ -255,20 +259,27 @@ kval *kval_read(mpc_ast_t *ast)
     {
         return kval_read_num(ast);
     }
+
     if (strstr(ast->tag, "symbol"))
     {
         return kval_sym(ast->contents);
     }
 
-    /* If root (>) or sexpr then create empty list */
+    /* If root (>), qexpr or sexpr then create empty list */
     kval *x = NULL;
     if (strcmp(ast->tag, ">") == 0)
     {
         x = kval_sexpr();
     }
+
     if (strstr(ast->tag, "sexpr"))
     {
         x = kval_sexpr();
+    }
+
+    if (strstr(ast->tag, "qexpr"))
+    {
+        x = kval_qexpr();
     }
 
     /* Fill this list with any valid expression contained within */
