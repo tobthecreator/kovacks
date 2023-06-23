@@ -104,10 +104,13 @@ kval *builtin_op(kenv *e, kval *kv, char *op)
 kval *builtin_head(kenv *e, kval *a)
 {
     K_ASSERT(a, a->count == 1,
-             "Function 'head' passed too many arguments!");
+             "Function 'head' passed too many arguments!\nGot %i, Expected %i",
+             a->count, 1);
 
     K_ASSERT(a, a->cells[0]->type == KVAL_QEXPR,
-             "Function 'head' passed incorrect type!");
+             "Function 'head' passed incorrect type for argument 0!\nGot %s, Expected %s.",
+             ktype_name(a->cells[0]->type),
+             ktype_name(KVAL_QEXPR));
 
     K_ASSERT(a, a->cells[0]->count != 0,
              "Function 'head' passed {}!");

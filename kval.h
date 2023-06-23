@@ -5,7 +5,7 @@
 #include "types.h"
 
 kval *kval_num(long num);
-kval *kval_err(char *err);
+kval *kval_err(char *err, ...);
 kval *kval_sym(char *s);
 kval *kval_sexpr(void);
 kval *kval_qexpr(void);

@@ -38,7 +38,7 @@ kval *kenv_get(kenv *e, kval *k)
     }
 
     // TODO - add a real error code here
-    return kval_err("Unbound symbol!");
+    return kval_err("Unbound symbol: '%s'", k->sym);
 }
 
 void kenv_put(kenv *e, kval *k, kval *v)

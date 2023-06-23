@@ -49,15 +49,23 @@ kval *kval_qexpr(void)
     return kv;
 }
 
-kval *kval_err(char *errorMsg)
+kval *kval_err(char *errorMsg, ...)
 {
-    kval *kv = malloc(sizeof(kval));
+    kval *v = malloc(sizeof(kval));
+    v->type = KVAL_ERR;
 
-    kv->type = KVAL_ERR;
-    kv->err = malloc(strlen(errorMsg + 1));
-    strcpy(kv->err, errorMsg);
+    va_list va;
+    va_start(va, errorMsg);
 
-    return kv;
+    v->err = malloc(512);
+
+    vsnprintf(v->err, 511, errorMsg, va);
+
+    v->err = realloc(v->err, strlen(v->err) + 1);
+
+    va_end(va);
+
+    return v;
 }
 
 kval *kval_fun(kbuiltin func)

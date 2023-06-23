@@ -57,4 +57,6 @@ struct kenv
     kval **vals;
 };
 
+char *ktype_name(int t);
+
 #endif
