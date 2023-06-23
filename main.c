@@ -15,15 +15,6 @@ int main()
     mpc_parser_t *Kovacs = mpc_new("kovacs");
     mpc_parser_t *Qexpr = mpc_new("qexpr");
 
-    /* Define them as a part of the language */
-    /*
-        Right now, expressions like
-        + 1 1 are valid, as are
-        + 1 (* 4 4)
-
-        But not (+ 1 1)
-    */
-
     mpca_lang(
         MPCA_LANG_DEFAULT,
         "                                                       \
