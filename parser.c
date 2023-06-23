@@ -104,14 +104,14 @@ int main()
             mpc_ast_print(result.output);
             printf("\n\n");
 
-            kval *x = kval_read(result.output);
+            kval *x = kval_eval(kval_read(result.output));
             kval_println(x);
 
-            kval *y = kval_eval(x);
-            kval_println(y);
+            // kval *y = kval_eval(x);
+            // kval_println(y);
 
             kval_del(x);
-            kval_del(y);
+            // kval_del(y);
 
             printf("\n\n");
             mpc_ast_delete(result.output);
@@ -127,6 +127,16 @@ int main()
 
     mpc_cleanup(4, Number, Symbol, Sexpr, Expr, Kovacs);
     return 0;
+}
+
+kval *kval_eval(kval *kv)
+{
+    if (kv->type == KVAL_SEXPR)
+    {
+        return kval_eval_sexpr(kv);
+    }
+
+    return kv;
 }
 
 kval *kval_eval_sexpr(kval *kv)
@@ -175,16 +185,6 @@ kval *kval_eval_sexpr(kval *kv)
     return result;
 }
 
-kval *kval_eval(kval *kv)
-{
-    if (kv->type == KVAL_SEXPR)
-    {
-        return kval_eval_sexpr(kv);
-    }
-
-    return kv;
-}
-
 kval *kval_pop(kval *kv, int i)
 {
     kval *x = kv->cells[i];
@@ -225,10 +225,10 @@ kval *builtin_op(kval *kv, char *op)
     kval *x = kval_pop(kv, 0);
 
     // If (- 10) -> -10
-    bool is_negation = kv->count = 0 && (strcmp(op, "-") == 0);
+    bool is_negation = kv->count == 0 && (strcmp(op, "-") == 0);
     if (is_negation)
     {
-        x->num = -x->num;
+        x->num *= -1;
     }
 
     while (kv->count > 0)
@@ -315,6 +315,7 @@ kval *kval_err(char *errorMsg)
 
 void kval_println(kval *kv)
 {
+    printf("kval_println: ");
     kval_print(kv);
     putchar('\n');
 }
