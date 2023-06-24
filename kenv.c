@@ -1,6 +1,7 @@
 #include "kenv.h"
 #include "kval.h"
 #include "builtin.h"
+#include "errors.h"
 
 kenv *kenv_init(void)
 {
@@ -9,6 +10,7 @@ kenv *kenv_init(void)
     e->count = 0;
     e->syms = NULL; // empty **
     e->vals = NULL; // empty **
+    e->parent = NULL;
 
     return e;
 }
@@ -37,10 +39,16 @@ kval *kenv_get(kenv *e, kval *k)
         }
     }
 
+    if (e->parent)
+    {
+        return kenv_get(e->parent, k);
+    }
+
     // TODO - add a real error code here
     return kval_err("Unbound symbol: '%s'", k->sym);
 }
 
+// Put definition in the local environment
 void kenv_put(kenv *e, kval *k, kval *v)
 {
 
@@ -67,6 +75,17 @@ void kenv_put(kenv *e, kval *k, kval *v)
     strcpy(e->syms[e->count - 1], k->sym);
 }
 
+// Put definition in the global environment
+void kenv_def(kenv *e, kval *k, kval *v)
+{
+    while (e->parent)
+    {
+        e = e->parent;
+    }
+
+    kenv_put(e, k, v);
+}
+
 void kenv_add_builtin(kenv *e, char *name, kbuiltin func)
 {
     kval *k = kval_sym(name);
@@ -74,6 +93,29 @@ void kenv_add_builtin(kenv *e, char *name, kbuiltin func)
     kenv_put(e, k, v);
     kval_del(k);
     kval_del(v);
+}
+
+kval *builtin_lambda(kenv *e, kval *a)
+{
+    /* Check two arguments, each of which are Q-Expressions */
+    K_ASSERT_NUM("\\", a, 2);
+    K_ASSERT_TYPE("\\", a, 0, KVAL_QEXPR);
+    K_ASSERT_TYPE("\\", a, 1, KVAL_QEXPR);
+
+    /* Check first Q-Expression contains only Symbols */
+    for (int i = 0; i < a->cells[0]->count; i++)
+    {
+        K_ASSERT(a, (a->cells[0]->cells[i]->type == KVAL_SYM),
+                 "Cannot define non-symbol. Got %s, Expected %s.",
+                 ktype_name(a->cells[0]->cells[i]->type), ktype_name(KVAL_SYM));
+    }
+
+    /* Pop first two arguments and pass them to kval_lambda */
+    kval *formals = kval_pop(a, 0);
+    kval *body = kval_pop(a, 0);
+    kval_del(a);
+
+    return kval_lambda(formals, body);
 }
 
 void kenv_add_builtins(kenv *e)
@@ -93,4 +135,23 @@ void kenv_add_builtins(kenv *e)
 
     /* Functions... Functions */
     kenv_add_builtin(e, "def", builtin_def);
+    kenv_add_builtin(e, "=", builtin_put);
+    kenv_add_builtin(e, "\\", builtin_lambda);
+}
+
+kenv *kenv_copy(kenv *e)
+{
+    kenv *n = malloc(sizeof(kenv));
+    n->parent = e->parent;
+    n->count = e->count;
+    n->syms = malloc(sizeof(char *) * n->count);
+    n->vals = malloc(sizeof(kval *) * n->count);
+
+    for (int i = 0; i < e->count; i++)
+    {
+        n->syms[i] = malloc(strlen(e->syms[i]) + 1);
+        strcpy(n->syms[i], e->syms[i]);
+        n->vals[i] = kval_copy(e->vals[i]);
+    }
+    return n;
 }

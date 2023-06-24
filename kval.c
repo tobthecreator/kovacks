@@ -78,6 +78,21 @@ kval *kval_fun(kbuiltin func)
     return kv;
 }
 
+kval *kval_lambda(kval *formals, kval *body)
+{
+    kval *kv = malloc(sizeof(kval));
+
+    kv->type = KVAL_FUN;
+
+    kv->fun = NULL;
+    kv->fenv = kenv_init();
+
+    kv->formals = formals;
+    kv->body = body;
+
+    return kv;
+}
+
 kval *kval_eval(kenv *e, kval *kv)
 {
     printf("kval_eval\n");
@@ -133,14 +148,18 @@ kval *kval_eval_sexpr(kenv *e, kval *kv)
     kval *f = kval_pop(kv, 0);
     if (f->type != KVAL_FUN)
     {
+        kval *err = kval_err(
+            "S-Expression starts with incorrect type. "
+            "Got %s, Expected %s.",
+            ktype_name(f->type), ktype_name(KVAL_FUN));
+
         kval_del(f);
         kval_del(kv);
 
-        // TODO: proper error code here
-        return kval_err("First child is not a function");
+        return err;
     }
 
-    kval *result = f->fun(e, kv);
+    kval *result = kval_call(e, f, kv);
     kval_del(f);
 
     return result;
@@ -203,8 +222,18 @@ void kval_print(kval *kv)
         break;
 
     case KVAL_FUN:
-        printf("<function>");
-        break;
+        if (kv->fun)
+        {
+            printf("<builtin>");
+        }
+        else
+        {
+            printf("(\\ ");
+            kval_print(kv->formals);
+            putchar(' ');
+            kval_print(kv->body);
+            putchar(')');
+        }
     }
 }
 
@@ -250,8 +279,16 @@ void kval_del(kval *kv)
         free(kv->cells);
         break;
 
-    case KVAL_NUM:
     case KVAL_FUN:
+        if (!kv->fun)
+        {
+            kenv_del(kv->fenv);
+            kval_del(kv->formals);
+            kval_del(kv->body);
+        }
+        break;
+
+    case KVAL_NUM:
     default:
         break;
     }
@@ -356,7 +393,18 @@ kval *kval_copy(kval *v)
 
     /* Copy functions and numbers directly */
     case KVAL_FUN:
-        x->fun = v->fun;
+        if (v->fun)
+        {
+            x->fun = v->fun;
+        }
+        else
+        {
+            x->fun = NULL;
+            x->fenv = kenv_copy(v->fenv);
+            x->formals = kval_copy(v->formals);
+            x->body = kval_copy(v->body);
+        }
+
         break;
 
     case KVAL_NUM:
@@ -387,4 +435,105 @@ kval *kval_copy(kval *v)
     }
 
     return x;
+}
+
+// Evaluate a kval function
+kval *kval_call(kenv *e, kval *f, kval *a)
+{
+
+    if (f->fun)
+    {
+        return f->fun(e, a);
+    }
+
+    int given = a->count;
+    int total = f->formals->count;
+
+    while (a->count)
+    {
+
+        /* If we've run out of formal arguments to bind... */
+        if (f->formals->count == 0)
+        {
+            kval_del(a);
+            return kval_err(
+                "Function passed too many arguments. "
+                "Got %i, Expected %i.",
+                given, total);
+        }
+
+        /* Pop the first symbol from the formals */
+        kval *sym = kval_pop(f->formals, 0);
+
+        /* Special case to deal with '&' */
+        if (strcmp(sym->sym, "&") == 0)
+        {
+
+            /* Ensure '&' is followed by another symbol */
+            if (f->formals->count != 1)
+            {
+                kval_del(a);
+                return kval_err("Function format invalid. "
+                                "Symbol '&' not followed by single symbol.");
+            }
+
+            /* Next formal should be bound to remaining arguments */
+            kval *nsym = kval_pop(f->formals, 0);
+            kenv_put(f->fenv, nsym, builtin_list(e, a));
+
+            kval_del(sym);
+            kval_del(nsym);
+            break;
+        }
+
+        /* Pop the next argument from the list */
+        kval *val = kval_pop(a, 0);
+
+        /* Bind a copy into the function's environment */
+        kenv_put(f->fenv, sym, val);
+
+        /* Delete symbol and value */
+        kval_del(sym);
+        kval_del(val);
+    }
+
+    kval_del(a);
+
+    /* If '&' remains in formal list bind to empty list */
+    if (f->formals->count > 0 &&
+        strcmp(f->formals->cells[0]->sym, "&") == 0)
+    {
+
+        /* Check to ensure that & is not passed invalidly. */
+        if (f->formals->count != 2)
+        {
+            return kval_err("Function format invalid. "
+                            "Symbol '&' not followed by single symbol.");
+        }
+
+        /* Pop and delete '&' symbol */
+        kval_del(kval_pop(f->formals, 0));
+
+        /* Pop next symbol and create empty list */
+        kval *sym = kval_pop(f->formals, 0);
+        kval *val = kval_qexpr();
+
+        /* Bind to environment and delete */
+        kenv_put(f->fenv, sym, val);
+        kval_del(sym);
+        kval_del(val);
+    }
+
+    // If we have all the formals we need to evaluate, then evaluate
+    if (f->formals->count == 0)
+    {
+
+        f->fenv->parent = e;
+
+        return builtin_eval(f->fenv,
+                            kval_add(kval_sexpr(), kval_copy(f->body)));
+    }
+
+    // Otherwise, return partially completed function
+    return kval_copy(f);
 }

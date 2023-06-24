@@ -201,20 +201,46 @@ kval *builtin_div(kenv *e, kval *a)
 
 kval *builtin_def(kenv *e, kval *a)
 {
-    K_ASSERT(a, a->cells[0]->type == KVAL_QEXPR, "Function def passed incorrect type");
+    return builtin_var(e, a, "def");
+}
+
+kval *builtin_put(kenv *e, kval *a)
+{
+    return builtin_var(e, a, "=");
+}
+
+kval *builtin_var(kenv *e, kval *a, char *func)
+{
+    K_ASSERT_TYPE(func, a, 0, KVAL_QEXPR);
 
     kval *syms = a->cells[0];
-
     for (int i = 0; i < syms->count; i++)
     {
-        K_ASSERT(a, a->cells[i]->type != KVAL_SYM, "Function def cannot define non-symbol");
+        K_ASSERT(a, (syms->cells[i]->type == KVAL_SYM),
+                 "Function '%s' cannot define non-symbol. "
+                 "Got %s, Expected %s.",
+                 func,
+                 ktype_name(syms->cells[i]->type),
+                 ktype_name(KVAL_SYM));
     }
 
-    K_ASSERT(a, syms->count == a->count - 1, "Function def cannot define incorrect number of values to symbols");
+    K_ASSERT(a, (syms->count == a->count - 1),
+             "Function '%s' passed too many arguments for symbols. "
+             "Got %i, Expected %i.",
+             func, syms->count, a->count - 1);
 
     for (int i = 0; i < syms->count; i++)
     {
-        kenv_put(e, syms->cells[i], a->cells[i + 1]);
+        /* If 'def' define in globally. If 'put' define in locally */
+        if (strcmp(func, "def") == 0)
+        {
+            kenv_def(e, syms->cells[i], a->cells[i + 1]);
+        }
+
+        if (strcmp(func, "=") == 0)
+        {
+            kenv_put(e, syms->cells[i], a->cells[i + 1]);
+        }
     }
 
     kval_del(a);

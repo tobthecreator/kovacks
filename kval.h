@@ -25,5 +25,7 @@ kval *kval_pop(kval *kv, int i);
 kval *kval_take(kval *v, int i);
 kval *kval_join(kval *x, kval *y);
 kval *kval_copy(kval *v);
+kval *kval_lambda(kval *formals, kval *body);
+kval *kval_call(kenv *e, kval *f, kval *a);
 
 #endif

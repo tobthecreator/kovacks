@@ -17,5 +17,7 @@ kval *builtin_sub(kenv *e, kval *a);
 kval *builtin_mul(kenv *e, kval *a);
 kval *builtin_div(kenv *e, kval *a);
 kval *builtin_def(kenv *e, kval *a);
+kval *builtin_put(kenv *e, kval *a);
+kval *builtin_var(kenv *e, kval *a, char *func);
 
 #endif

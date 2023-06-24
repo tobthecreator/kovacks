@@ -31,14 +31,20 @@ typedef kval *(*kbuiltin)(kenv *, kval *);
 struct kval
 {
     int type;
-    long num;
 
+    long num;
     char *err;
     char *sym;
-    kbuiltin fun;
 
+    // Expression
     int count;
     struct kval **cells;
+
+    // Functions
+    kbuiltin fun;
+    kenv *fenv;
+    kval *formals;
+    kval *body;
 };
 
 /*
@@ -55,6 +61,8 @@ struct kenv
     int count;
     char **syms;
     kval **vals;
+
+    kenv *parent;
 };
 
 char *ktype_name(int t);
