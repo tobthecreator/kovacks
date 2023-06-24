@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <editline/readline.h>
 #include <stdbool.h>
 #include "mpc.h"
@@ -55,7 +56,11 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    kval *standard_libararies = kval_add(kval_sexpr(), kval_str("./dist/stdlib.k"));
+    // printf("%s", strcat(strcat(cwd, "/stdlib.k\n\n")));
+
+    char *stdlib_filepath = strcat(cwd, "/stdlib.k");
+
+    kval *standard_libararies = kval_add(kval_sexpr(), kval_str(stdlib_filepath));
     builtin_load(e, standard_libararies);
 
     if (argc == 1)
@@ -99,7 +104,6 @@ int main(int argc, char **argv)
     // If given files
     if (argc >= 2)
     {
-
         for (int i = 1; i < argc; i++)
         {
 

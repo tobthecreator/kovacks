@@ -1,5 +1,6 @@
 # VS Code
 .vscode
+dist
 
 # Prerequisites
 *.d
