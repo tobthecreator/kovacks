@@ -24,6 +24,12 @@ cd dist && ./kovacs.out
 
 I'm not sure why you would want to install this little test LISP on your machine globally, but if you do, both `kovacs.out` and `stdlib.k` need to be in the same folder together. `kovacs.out` looks in it's folder for `stdlib.k` at runtime and loads the stdlib in before opening up the REPL or executing any files.
 
+I've provided a script that moves the contents of `dist` into `~/bin/kovacs` and adds them to your PATH via a .bashrc file. I haven't fully tested this since I am a zsh user and had to wrangle my own .zshrc to get this to work.
+
+```
+./scripts/install.sh
+```
+
 ## Running a .k file
 
 You can run as many .k files as you'd like with:
