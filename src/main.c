@@ -46,17 +46,11 @@ int main(int argc, char **argv)
     kenv_add_builtins(e);
 
     char cwd[256];
-    if (getcwd(cwd, sizeof(cwd)) != NULL)
-    {
-        printf("Current working directory: %s\n", cwd);
-    }
-    else
+    if (getcwd(cwd, sizeof(cwd)) == NULL)
     {
         perror("getcwd() error");
         return 1;
     }
-
-    // printf("%s", strcat(strcat(cwd, "/stdlib.k\n\n")));
 
     char *stdlib_filepath = strcat(cwd, "/stdlib.k");
 
