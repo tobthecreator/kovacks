@@ -4,6 +4,7 @@
 #include "builtin.h"
 #include "types.h"
 #include "kenv.h"
+#include "parser.h"
 
 kval *builtin(kenv *e, kval *a, char *func)
 {
@@ -244,5 +245,178 @@ kval *builtin_var(kenv *e, kval *a, char *func)
     }
 
     kval_del(a);
+    return kval_sexpr();
+}
+
+kval *builtin_gt(kenv *e, kval *a)
+{
+    return builtin_ord(e, a, ">");
+}
+
+kval *builtin_lt(kenv *e, kval *a)
+{
+    return builtin_ord(e, a, "<");
+}
+
+kval *builtin_ge(kenv *e, kval *a)
+{
+    return builtin_ord(e, a, ">=");
+}
+
+kval *builtin_le(kenv *e, kval *a)
+{
+    return builtin_ord(e, a, "<=");
+}
+
+kval *builtin_ord(kenv *e, kval *a, char *op)
+{
+    K_ASSERT_NUM(op, a, 2);
+    K_ASSERT_TYPE(op, a, 0, KVAL_NUM);
+    K_ASSERT_TYPE(op, a, 1, KVAL_NUM);
+
+    int r;
+    if (strcmp(op, ">") == 0)
+    {
+        r = (a->cells[0]->num > a->cells[1]->num);
+    }
+
+    if (strcmp(op, "<") == 0)
+    {
+        r = (a->cells[0]->num < a->cells[1]->num);
+    }
+
+    if (strcmp(op, ">=") == 0)
+    {
+        r = (a->cells[0]->num >= a->cells[1]->num);
+    }
+
+    if (strcmp(op, "<=") == 0)
+    {
+        r = (a->cells[0]->num <= a->cells[1]->num);
+    }
+
+    kval_del(a);
+
+    return kval_num(r);
+}
+
+kval *builtin_cmp(kenv *e, kval *a, char *op)
+{
+    K_ASSERT_NUM(op, a, 2);
+
+    int r;
+    if (strcmp(op, "==") == 0)
+    {
+        r = kval_eq(a->cells[0], a->cells[1]);
+    }
+
+    if (strcmp(op, "!=") == 0)
+    {
+        r = !kval_eq(a->cells[0], a->cells[1]);
+    }
+
+    kval_del(a);
+    return kval_num(r);
+}
+
+kval *builtin_eq(kenv *e, kval *a)
+{
+    return builtin_cmp(e, a, "==");
+}
+
+kval *builtin_ne(kenv *e, kval *a)
+{
+    return builtin_cmp(e, a, "!=");
+}
+
+kval *builtin_if(kenv *e, kval *a)
+{
+    K_ASSERT_NUM("if", a, 3);
+    K_ASSERT_TYPE("if", a, 0, KVAL_NUM);
+    K_ASSERT_TYPE("if", a, 1, KVAL_QEXPR);
+    K_ASSERT_TYPE("if", a, 2, KVAL_QEXPR);
+
+    /* Mark Both Expressions as evaluable */
+    kval *x;
+    a->cells[1]->type = KVAL_SEXPR;
+    a->cells[2]->type = KVAL_SEXPR;
+
+    if (a->cells[0]->num)
+    {
+        /* If condition is true evaluate first expression */
+        x = kval_eval(e, kval_pop(a, 1));
+    }
+    else
+    {
+        /* Otherwise evaluate second expression */
+        x = kval_eval(e, kval_pop(a, 2));
+    }
+
+    /* Delete argument list and return */
+    kval_del(a);
+    return x;
+}
+
+kval *builtin_load(kenv *e, kval *a)
+{
+    K_ASSERT_NUM("load", a, 1);
+    K_ASSERT_TYPE("load", a, 0, KVAL_STR);
+
+    mpc_result_t r;
+    if (mpc_parse_contents(a->cells[0]->str, Kovacs, &r))
+    {
+
+        kval *expr = kval_read(r.output);
+        mpc_ast_delete(r.output);
+
+        while (expr->count)
+        {
+            kval *x = kval_eval(e, kval_pop(expr, 0));
+            if (x->type == KVAL_ERR)
+            {
+                kval_println(x);
+            }
+            kval_del(x);
+        }
+
+        kval_del(expr);
+        kval_del(a);
+
+        return kval_sexpr();
+    }
+
+    char *err_msg = mpc_err_string(r.error);
+    mpc_err_delete(r.error);
+
+    kval *err = kval_err("Could not load file %s", err_msg);
+    free(err_msg);
+    kval_del(a);
+
+    return err;
+}
+
+kval *builtin_error(kenv *e, kval *a)
+{
+    K_ASSERT_NUM("error", a, 1);
+    K_ASSERT_TYPE("error", a, 0, KVAL_STR);
+
+    kval *err = kval_err(a->cells[0]->str);
+
+    kval_del(a);
+    return err;
+}
+
+kval *builtin_print(kenv *e, kval *a)
+{
+
+    for (int i = 0; i < a->count; i++)
+    {
+        kval_print(a->cells[i]);
+        putchar(' ');
+    }
+
+    putchar('\n');
+    kval_del(a);
+
     return kval_sexpr();
 }

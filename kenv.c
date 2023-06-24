@@ -137,6 +137,20 @@ void kenv_add_builtins(kenv *e)
     kenv_add_builtin(e, "def", builtin_def);
     kenv_add_builtin(e, "=", builtin_put);
     kenv_add_builtin(e, "\\", builtin_lambda);
+
+    /* Conditionals */
+    kenv_add_builtin(e, "if", builtin_if);
+    kenv_add_builtin(e, "==", builtin_eq);
+    kenv_add_builtin(e, "!=", builtin_ne);
+    kenv_add_builtin(e, ">", builtin_gt);
+    kenv_add_builtin(e, "<", builtin_lt);
+    kenv_add_builtin(e, ">=", builtin_ge);
+    kenv_add_builtin(e, "<=", builtin_le);
+
+    /* String Functions */
+    kenv_add_builtin(e, "load", builtin_load);
+    kenv_add_builtin(e, "error", builtin_error);
+    kenv_add_builtin(e, "print", builtin_print);
 }
 
 kenv *kenv_copy(kenv *e)

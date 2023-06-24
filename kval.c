@@ -95,11 +95,8 @@ kval *kval_lambda(kval *formals, kval *body)
 
 kval *kval_eval(kenv *e, kval *kv)
 {
-    printf("kval_eval\n");
-
     if (kv->type == KVAL_SYM)
     {
-        printf("kval_eval.is_kval_sym\n");
         kval *x = kenv_get(e, kv);
         kval_del(kv);
         return x;
@@ -107,7 +104,6 @@ kval *kval_eval(kenv *e, kval *kv)
 
     if (kv->type == KVAL_SEXPR)
     {
-        printf("kval_eval.KVAL_SEXPR\n");
         return kval_eval_sexpr(e, kv);
     }
 
@@ -192,7 +188,6 @@ kval *kval_take(kval *v, int i)
 
 void kval_println(kval *kv)
 {
-    printf("kval_println: ");
     kval_print(kv);
     putchar('\n');
 }
@@ -221,6 +216,10 @@ void kval_print(kval *kv)
         kval_expr_print(kv, '{', '}');
         break;
 
+    case KVAL_STR:
+        kval_print_str(kv);
+        break;
+
     case KVAL_FUN:
         if (kv->fun)
         {
@@ -235,6 +234,18 @@ void kval_print(kval *kv)
             putchar(')');
         }
     }
+}
+
+void kval_print_str(kval *v)
+{
+    char *escaped = malloc(strlen(v->str) + 1);
+    strcpy(escaped, v->str);
+
+    escaped = mpcf_escape(escaped);
+
+    printf("\"%s\"", escaped);
+
+    free(escaped);
 }
 
 void kval_expr_print(kval *kv, char open, char close)
@@ -265,6 +276,10 @@ void kval_del(kval *kv)
 
     case KVAL_SYM:
         free(kv->sym);
+        break;
+
+    case KVAL_STR:
+        free(kv->str);
         break;
 
     /* Delete all elements inside */
@@ -299,6 +314,7 @@ void kval_del(kval *kv)
 
 kval *kval_read(mpc_ast_t *ast)
 {
+
     /* If Symbol or Number return conversion to that type */
     if (strstr(ast->tag, "number"))
     {
@@ -308,6 +324,11 @@ kval *kval_read(mpc_ast_t *ast)
     if (strstr(ast->tag, "symbol"))
     {
         return kval_sym(ast->contents);
+    }
+
+    if (strstr(ast->tag, "string"))
+    {
+        return kval_read_str(ast);
     }
 
     /* If root (>), qexpr or sexpr then create empty list */
@@ -335,7 +356,9 @@ kval *kval_read(mpc_ast_t *ast)
             strcmp(ast->children[i]->contents, ")") == 0 ||
             strcmp(ast->children[i]->contents, "{") == 0 ||
             strcmp(ast->children[i]->contents, "}") == 0 ||
-            strcmp(ast->children[i]->tag, "regex") == 0)
+            strcmp(ast->children[i]->tag, "regex") == 0 ||
+            strstr(ast->children[i]->tag, "comment"))
+
         {
             continue;
         }
@@ -405,6 +428,11 @@ kval *kval_copy(kval *v)
             x->body = kval_copy(v->body);
         }
 
+        break;
+
+    case KVAL_STR:
+        x->str = malloc(strlen(v->str) + 1);
+        strcpy(x->str, v->str);
         break;
 
     case KVAL_NUM:
@@ -536,4 +564,87 @@ kval *kval_call(kenv *e, kval *f, kval *a)
 
     // Otherwise, return partially completed function
     return kval_copy(f);
+}
+
+int kval_eq(kval *x, kval *y)
+{
+
+    /* Different Types are always unequal */
+    if (x->type != y->type)
+    {
+        return 0;
+    }
+
+    /* Compare Based upon type */
+    switch (x->type)
+    {
+    /* Compare Number Value */
+    case KVAL_NUM:
+        return (x->num == y->num);
+
+    /* Compare String Values */
+    case KVAL_ERR:
+        return (strcmp(x->err, y->err) == 0);
+
+    case KVAL_SYM:
+        return (strcmp(x->sym, y->sym) == 0);
+
+    /* If fun compare, otherwise compare formals and body */
+    case KVAL_FUN:
+        if (x->fun || y->fun)
+        {
+            return x->fun == y->fun;
+        }
+        else
+        {
+            return kval_eq(x->formals, y->formals) && kval_eq(x->body, y->body);
+        }
+
+    case KVAL_STR:
+        return (strcmp(x->str, y->str) == 0);
+
+    /* If list compare every individual element */
+    case KVAL_QEXPR:
+    case KVAL_SEXPR:
+        if (x->count != y->count)
+        {
+            return 0;
+        }
+        for (int i = 0; i < x->count; i++)
+        {
+            /* If any element not equal then whole list not equal */
+            if (!kval_eq(x->cells[i], y->cells[i]))
+            {
+                return 0;
+            }
+        }
+        /* Otherwise lists must be equal */
+        return 1;
+        break;
+    }
+    return 0;
+}
+
+kval *kval_str(char *s)
+{
+    kval *v = malloc(sizeof(kval));
+    v->type = KVAL_STR;
+    v->str = malloc(strlen(s) + 1);
+    strcpy(v->str, s);
+    return v;
+}
+
+kval *kval_read_str(mpc_ast_t *t)
+{
+    t->contents[strlen(t->contents) - 1] = '\0';
+
+    char *unescaped = malloc(strlen(t->contents + 1) + 1);
+    strcpy(unescaped, t->contents + 1);
+    unescaped = mpcf_unescape(unescaped);
+
+    kval *str = kval_str(unescaped);
+
+    free(unescaped);
+
+    return str;
 }

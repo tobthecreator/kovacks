@@ -16,6 +16,10 @@ char *ktype_name(int t)
         return "S-Expression";
     case KVAL_QEXPR:
         return "Q-Expression";
+    case KVAL_STR:
+        return "String";
+
+        break;
     default:
         return "Unknown";
     }

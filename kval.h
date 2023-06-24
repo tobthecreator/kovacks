@@ -27,5 +27,9 @@ kval *kval_join(kval *x, kval *y);
 kval *kval_copy(kval *v);
 kval *kval_lambda(kval *formals, kval *body);
 kval *kval_call(kenv *e, kval *f, kval *a);
+int kval_eq(kval *x, kval *y);
+void kval_print_str(kval *v);
+kval *kval_read_str(mpc_ast_t *t);
+kval *kval_str(char *s);
 
 #endif

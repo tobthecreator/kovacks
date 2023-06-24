@@ -7,28 +7,34 @@
 #include "types.h"
 #include "kenv.h"
 #include "quotes.h"
+#include "parser.h"
+#include "builtin.h"
 
-int main()
+int main(int argc, char **argv)
 {
     /* Create parsers */
-    mpc_parser_t *Number = mpc_new("number");
-    mpc_parser_t *Symbol = mpc_new("symbol");
-    mpc_parser_t *Sexpr = mpc_new("sexpr");
-    mpc_parser_t *Expr = mpc_new("expr");
-    mpc_parser_t *Kovacs = mpc_new("kovacs");
-    mpc_parser_t *Qexpr = mpc_new("qexpr");
+    Number = mpc_new("number");
+    Symbol = mpc_new("symbol");
+    Sexpr = mpc_new("sexpr");
+    Expr = mpc_new("expr");
+    Kovacs = mpc_new("kovacs");
+    Qexpr = mpc_new("qexpr");
+    String = mpc_new("string");
+    Comment = mpc_new("comment");
 
     mpca_lang(
         MPCA_LANG_DEFAULT,
-        "                                                       \
-            number  : /-?[0-9]+/ ;                              \
-            symbol  : /[a-zA-Z0-9_+\\-*\\/\\\\=<>!&]+/ ;        \
-            sexpr   : '(' <expr>* ')' ;                         \
-            qexpr   : '{' <expr>* '}' ;                         \
-            expr    : <number> | <symbol> | <sexpr> | <qexpr> ; \
-            kovacs  : /^/ <expr>+ /$/ ;                         \
+        "                                                                               \
+            number  : /-?[0-9]+/ ;                                                      \
+            symbol  : /[a-zA-Z0-9_+\\-*\\/\\\\=<>!&]+/ ;                                \
+            sexpr   : '(' <expr>* ')' ;                                                 \
+            qexpr   : '{' <expr>* '}' ;                                                 \
+            expr    : <number> | <symbol> | <sexpr> | <qexpr> | <string> | <comment>;   \
+            kovacs  : /^/ <expr>+ /$/ ;                                                 \
+            string  : /\"(\\\\.|[^\"])*\"/ ;                                            \
+            comment : /;[^\\r\\n]*/ ;                                                   \
         ",
-        Number, Symbol, Sexpr, Qexpr, Expr, Kovacs);
+        Number, Symbol, Sexpr, Qexpr, Expr, Kovacs, String, Comment);
 
     puts("Kovacs Version 0.0.0.0.1");
     print_altered_carbon_quote();
@@ -38,44 +44,72 @@ int main()
     kenv *e = kenv_init();
     kenv_add_builtins(e);
 
-    while (1)
+    kval *standard_libararies = kval_add(kval_sexpr(), kval_str("stdlib.k"));
+    builtin_load(e, standard_libararies);
+
+    if (argc == 1)
     {
-        // Prompt
-        char *input = readline("kovacs> ");
-
-        // Remember Prompts
-        add_history(input);
-
-        // Init parsing result
-        mpc_result_t result;
-
-        // Parse input into result
-        // If successful, mpc_parse returns 1
-        if (mpc_parse("<stdin>", input, Kovacs, &result)) // Passes r via memory address to be written directly to
+        while (1)
         {
-            // Print parsed results
-            mpc_ast_print(result.output);
-            printf("\n\n");
+            // Prompt
+            char *input = readline("kovacs> ");
 
-            kval *x = kval_eval(e, kval_read(result.output));
-            kval_println(x);
+            // Remember prompts
+            add_history(input);
+
+            // Init parsing result
+            mpc_result_t result;
+
+            // Parse input into result
+            // If successful, mpc_parse returns 1
+            if (mpc_parse("<stdin>", input, Kovacs, &result)) // Passes r via memory address to be written directly to
+            {
+                // Print parsed results
+                // mpc_ast_print(result.output);
+                // printf("\n\n");
+
+                kval *x = kval_eval(e, kval_read(result.output));
+                kval_println(x);
+
+                // printf("\n\n");
+                kval_del(x);
+                mpc_ast_delete(result.output);
+            }
+            else
+            {
+                mpc_err_print(result.error);
+                mpc_err_delete(result.error);
+            }
+
+            free(input);
+        }
+    }
+
+    // If given files
+    if (argc >= 2)
+    {
+
+        for (int i = 1; i < argc; i++)
+        {
+
+            /* Argument list with a single argument, the filename */
+            kval *args = kval_add(kval_sexpr(), kval_str(argv[i]));
+
+            /* Pass to builtin load and get the result */
+            kval *x = builtin_load(e, args);
+
+            /* If the result is an error be sure to print it */
+            if (x->type == KVAL_ERR)
+            {
+                kval_println(x);
+            }
 
             kval_del(x);
-
-            printf("\n\n");
-            mpc_ast_delete(result.output);
         }
-        else
-        {
-            mpc_err_print(result.error);
-            mpc_err_delete(result.error);
-        }
-
-        free(input);
     }
 
     kenv_del(e);
+    mpc_cleanup(8, Number, Symbol, Sexpr, Qexpr, Expr, Kovacs, String, Comment);
 
-    mpc_cleanup(6, Number, Symbol, Sexpr, Qexpr, Expr, Kovacs);
     return 0;
 }

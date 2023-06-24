@@ -14,7 +14,8 @@ enum
     KVAL_SYM,
     KVAL_SEXPR,
     KVAL_QEXPR,
-    KVAL_FUN
+    KVAL_FUN,
+    KVAL_STR
 };
 
 /*
@@ -33,6 +34,7 @@ struct kval
     int type;
 
     long num;
+    char *str;
     char *err;
     char *sym;
 

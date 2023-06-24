@@ -19,5 +19,17 @@ kval *builtin_div(kenv *e, kval *a);
 kval *builtin_def(kenv *e, kval *a);
 kval *builtin_put(kenv *e, kval *a);
 kval *builtin_var(kenv *e, kval *a, char *func);
+kval *builtin_gt(kenv *e, kval *a);
+kval *builtin_lt(kenv *e, kval *a);
+kval *builtin_ge(kenv *e, kval *a);
+kval *builtin_le(kenv *e, kval *a);
+kval *builtin_ord(kenv *e, kval *a, char *op);
+kval *builtin_cmp(kenv *e, kval *a, char *op);
+kval *builtin_eq(kenv *e, kval *a);
+kval *builtin_ne(kenv *e, kval *a);
+kval *builtin_if(kenv *e, kval *a);
+kval *builtin_load(kenv *e, kval *a);
+kval *builtin_error(kenv *e, kval *a);
+kval *builtin_print(kenv *e, kval *a);
 
 #endif
