@@ -237,3 +237,5 @@
     { (== n 1) 1 }
     { otherwise (+ (fib (- n 1)) (fib (- n 2))) }
 })
+
+print "Hey!"

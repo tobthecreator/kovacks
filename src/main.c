@@ -9,10 +9,10 @@
 #include "quotes.h"
 #include "parser.h"
 #include "builtin.h"
+#include <unistd.h>
 
 int main(int argc, char **argv)
 {
-    /* Create parsers */
     Number = mpc_new("number");
     Symbol = mpc_new("symbol");
     Sexpr = mpc_new("sexpr");
@@ -44,7 +44,18 @@ int main(int argc, char **argv)
     kenv *e = kenv_init();
     kenv_add_builtins(e);
 
-    kval *standard_libararies = kval_add(kval_sexpr(), kval_str("stdlib.k"));
+    char cwd[256];
+    if (getcwd(cwd, sizeof(cwd)) != NULL)
+    {
+        printf("Current working directory: %s\n", cwd);
+    }
+    else
+    {
+        perror("getcwd() error");
+        return 1;
+    }
+
+    kval *standard_libararies = kval_add(kval_sexpr(), kval_str("./dist/stdlib.k"));
     builtin_load(e, standard_libararies);
 
     if (argc == 1)
@@ -92,13 +103,10 @@ int main(int argc, char **argv)
         for (int i = 1; i < argc; i++)
         {
 
-            /* Argument list with a single argument, the filename */
             kval *args = kval_add(kval_sexpr(), kval_str(argv[i]));
 
-            /* Pass to builtin load and get the result */
             kval *x = builtin_load(e, args);
 
-            /* If the result is an error be sure to print it */
             if (x->type == KVAL_ERR)
             {
                 kval_println(x);

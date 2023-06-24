@@ -367,6 +367,7 @@ kval *builtin_load(kenv *e, kval *a)
     {
 
         kval *expr = kval_read(r.output);
+        // mpc_ast_print(r.output);
         mpc_ast_delete(r.output);
 
         while (expr->count)
