@@ -42,7 +42,7 @@ These files will execute in the sequence provided.
 
 # Kovacs
 
-Kovacs is written in Polish Notation.
+The following overview is not finished. I need to find a version of this that matches my taste to get a better feel for the structure. I don't expect anyone to see or read this repo, but I want to leave a good paper trail for myself later.
 
 ## Standard Library
 
