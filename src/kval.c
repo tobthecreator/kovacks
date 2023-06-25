@@ -184,7 +184,6 @@ void kval_del(kval *kv)
     switch (kv->type)
     {
 
-    /* For Err or Sym free the string data */
     case KVAL_ERR:
         free(kv->err);
         break;
@@ -197,7 +196,6 @@ void kval_del(kval *kv)
         free(kv->str);
         break;
 
-    /* Delete all elements inside */
     case KVAL_SEXPR:
     case KVAL_QEXPR:
         for (int i = 0; i < kv->count; i++)
@@ -205,7 +203,6 @@ void kval_del(kval *kv)
             kval_del(kv->cells[i]);
         }
 
-        /* Also free the memory allocated to contain the pointers */
         free(kv->cells);
         break;
 
@@ -223,7 +220,6 @@ void kval_del(kval *kv)
         break;
     }
 
-    /* Free the memory allocated for the "kval" struct itself */
     free(kv);
 }
 
@@ -232,8 +228,6 @@ void kval_del(kval *kv)
 // ###############
 kval *kval_read(mpc_ast_t *ast)
 {
-
-    /* If Symbol or Number return conversion to that type */
     if (strstr(ast->tag, "number"))
     {
         return kval_read_num(ast);
@@ -249,7 +243,6 @@ kval *kval_read(mpc_ast_t *ast)
         return kval_read_str(ast);
     }
 
-    /* If root (>), qexpr or sexpr then create empty list */
     kval *x = NULL;
     if (strcmp(ast->tag, ">") == 0)
     {
@@ -266,7 +259,6 @@ kval *kval_read(mpc_ast_t *ast)
         x = kval_qexpr();
     }
 
-    /* Fill this list with any valid expression contained within */
     for (int i = 0; i < ast->children_num; i++)
     {
         if (
@@ -289,7 +281,6 @@ kval *kval_read(mpc_ast_t *ast)
 
 kval *kval_read_num(mpc_ast_t *ast)
 {
-    // errno is from <errno.h>, a header that provides error codes and their constants
     errno = 0;
     long x = strtol(ast->contents, NULL, 10);
 
@@ -322,7 +313,6 @@ kval *kval_pop(kval *kv, int i)
 {
     kval *x = kv->cells[i];
 
-    /* Shift memory after the item at "i" over the top */
     memmove(
         &kv->cells[i],
         &kv->cells[i + 1],
@@ -330,7 +320,6 @@ kval *kval_pop(kval *kv, int i)
 
     kv->count--;
 
-    /* Reallocate memory */
     kv->cells = realloc(kv->cells, sizeof(kval *) * kv->count);
 
     return x;
@@ -355,13 +344,11 @@ kval *kval_add(kval *kv, kval *new_cell)
 kval *kval_join(kval *x, kval *y)
 {
 
-    /* For each cell in 'y' add it to 'x' */
     while (y->count)
     {
         x = kval_add(x, kval_pop(y, 0));
     }
 
-    /* Delete the empty 'y' and return 'x' */
     kval_del(y);
     return x;
 }
@@ -375,7 +362,6 @@ kval *kval_copy(kval *v)
     switch (v->type)
     {
 
-    /* Copy functions and numbers directly */
     case KVAL_FUN:
         if (v->fun)
         {
@@ -400,7 +386,6 @@ kval *kval_copy(kval *v)
         x->num = v->num;
         break;
 
-    /* Copy strings using malloc and strcpy */
     case KVAL_ERR:
         x->err = malloc(strlen(v->err) + 1);
         strcpy(x->err, v->err);
@@ -411,7 +396,6 @@ kval *kval_copy(kval *v)
         strcpy(x->sym, v->sym);
         break;
 
-    /* Copy lists by copying each sub-expression */
     case KVAL_SEXPR:
     case KVAL_QEXPR:
         x->count = v->count;
@@ -440,7 +424,7 @@ kval *kval_call(kenv *e, kval *f, kval *a)
     while (a->count)
     {
 
-        /* If we've run out of formal arguments to bind... */
+        // If we've run out of formal arguments to bind...
         if (f->formals->count == 0)
         {
             kval_del(a);
@@ -450,14 +434,14 @@ kval *kval_call(kenv *e, kval *f, kval *a)
                 given, total);
         }
 
-        /* Pop the first symbol from the formals */
+        // Pop the first symbol from the formals
         kval *sym = kval_pop(f->formals, 0);
 
-        /* Special case to deal with '&' */
+        //  Special case to deal with '&'
         if (strcmp(sym->sym, "&") == 0)
         {
 
-            /* Ensure '&' is followed by another symbol */
+            // Ensure '&' is followed by another symbol
             if (f->formals->count != 1)
             {
                 kval_del(a);
@@ -465,7 +449,7 @@ kval *kval_call(kenv *e, kval *f, kval *a)
                                 "Symbol '&' not followed by single symbol.");
             }
 
-            /* Next formal should be bound to remaining arguments */
+            // Next formal should be bound to remaining arguments
             kval *nsym = kval_pop(f->formals, 0);
             kenv_put(f->fenv, nsym, builtin_list(e, a));
 
@@ -474,39 +458,39 @@ kval *kval_call(kenv *e, kval *f, kval *a)
             break;
         }
 
-        /* Pop the next argument from the list */
+        // Pop the next argument from the list
         kval *val = kval_pop(a, 0);
 
-        /* Bind a copy into the function's environment */
+        // Bind a copy into the function's environment
         kenv_put(f->fenv, sym, val);
 
-        /* Delete symbol and value */
+        // Delete symbol and value
         kval_del(sym);
         kval_del(val);
     }
 
     kval_del(a);
 
-    /* If '&' remains in formal list bind to empty list */
+    // If '&' remains in formal list bind to empty list
     if (f->formals->count > 0 &&
         strcmp(f->formals->cells[0]->sym, "&") == 0)
     {
 
-        /* Check to ensure that & is not passed invalidly. */
+        // Check to ensure that & is not passed invalidly.
         if (f->formals->count != 2)
         {
             return kval_err("Function format invalid. "
                             "Symbol '&' not followed by single symbol.");
         }
 
-        /* Pop and delete '&' symbol */
+        // Pop and delete '&' symbol
         kval_del(kval_pop(f->formals, 0));
 
-        /* Pop next symbol and create empty list */
+        // Pop next symbol and create empty list
         kval *sym = kval_pop(f->formals, 0);
         kval *val = kval_qexpr();
 
-        /* Bind to environment and delete */
+        // Bind to environment and delete
         kenv_put(f->fenv, sym, val);
         kval_del(sym);
         kval_del(val);
@@ -529,27 +513,23 @@ kval *kval_call(kenv *e, kval *f, kval *a)
 int kval_eq(kval *x, kval *y)
 {
 
-    /* Different Types are always unequal */
+    // Different types are always unequal
     if (x->type != y->type)
     {
         return 0;
     }
 
-    /* Compare Based upon type */
     switch (x->type)
     {
-    /* Compare Number Value */
     case KVAL_NUM:
         return (x->num == y->num);
 
-    /* Compare String Values */
     case KVAL_ERR:
         return (strcmp(x->err, y->err) == 0);
 
     case KVAL_SYM:
         return (strcmp(x->sym, y->sym) == 0);
 
-    /* If fun compare, otherwise compare formals and body */
     case KVAL_FUN:
         if (x->fun || y->fun)
         {
@@ -563,7 +543,7 @@ int kval_eq(kval *x, kval *y)
     case KVAL_STR:
         return (strcmp(x->str, y->str) == 0);
 
-    /* If list compare every individual element */
+    // If list compare every individual element
     case KVAL_QEXPR:
     case KVAL_SEXPR:
         if (x->count != y->count)
@@ -572,13 +552,13 @@ int kval_eq(kval *x, kval *y)
         }
         for (int i = 0; i < x->count; i++)
         {
-            /* If any element not equal then whole list not equal */
+            // If any element not equal then whole list not equal
             if (!kval_eq(x->cells[i], y->cells[i]))
             {
                 return 0;
             }
         }
-        /* Otherwise lists must be equal */
+
         return 1;
         break;
     }

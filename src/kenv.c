@@ -102,25 +102,25 @@ void kenv_add_builtin(kenv *e, char *name, kbuiltin func)
 
 void kenv_add_builtins(kenv *e)
 {
-    /* List Functions */
+    // List Functions  
     kenv_add_builtin(e, "list", builtin_list);
     kenv_add_builtin(e, "head", builtin_head);
     kenv_add_builtin(e, "tail", builtin_tail);
     kenv_add_builtin(e, "eval", builtin_eval);
     kenv_add_builtin(e, "join", builtin_join);
 
-    /* Mathematical Functions */
+    // Mathematical Functions  
     kenv_add_builtin(e, "+", builtin_add);
     kenv_add_builtin(e, "-", builtin_sub);
     kenv_add_builtin(e, "*", builtin_mul);
     kenv_add_builtin(e, "/", builtin_div);
 
-    /* Functions... Functions */
+    // Functions... Functions  
     kenv_add_builtin(e, "def", builtin_def);
     kenv_add_builtin(e, "=", builtin_put);
     kenv_add_builtin(e, "\\", builtin_lambda);
 
-    /* Conditionals */
+    // Conditionals  
     kenv_add_builtin(e, "if", builtin_if);
     kenv_add_builtin(e, "==", builtin_eq);
     kenv_add_builtin(e, "!=", builtin_ne);
@@ -129,7 +129,7 @@ void kenv_add_builtins(kenv *e)
     kenv_add_builtin(e, ">=", builtin_ge);
     kenv_add_builtin(e, "<=", builtin_le);
 
-    /* String Functions */
+    // String Functions  
     kenv_add_builtin(e, "load", builtin_load);
     kenv_add_builtin(e, "error", builtin_error);
     kenv_add_builtin(e, "print", builtin_print);

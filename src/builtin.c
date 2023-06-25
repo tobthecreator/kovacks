@@ -44,7 +44,7 @@ kval *builtin(kenv *e, kval *a, char *func)
 
 kval *builtin_op(kenv *e, kval *kv, char *op)
 {
-    /* Ensure all arguments are numbers */
+    // Ensure all arguments are numbers  
     for (int i = 0; i < kv->count; i++)
     {
         if (kv->cells[i]->type != KVAL_NUM)
@@ -241,7 +241,7 @@ kval *builtin_var(kenv *e, kval *a, char *func)
 
     for (int i = 0; i < syms->count; i++)
     {
-        /* If 'def' define in globally. If 'put' define in locally */
+        // If 'def' define in globally. If 'put' define in locally  
         if (strcmp(func, "def") == 0)
         {
             kenv_def(e, syms->cells[i], a->cells[i + 1]);
@@ -259,12 +259,12 @@ kval *builtin_var(kenv *e, kval *a, char *func)
 
 kval *builtin_lambda(kenv *e, kval *a)
 {
-    /* Check two arguments, each of which are Q-Expressions */
+    // Check two arguments, each of which are Q-Expressions  
     K_ASSERT_NUM("\\", a, 2);
     K_ASSERT_TYPE("\\", a, 0, KVAL_QEXPR);
     K_ASSERT_TYPE("\\", a, 1, KVAL_QEXPR);
 
-    /* Check first Q-Expression contains only Symbols */
+    // Check first Q-Expression contains only Symbols  
     for (int i = 0; i < a->cells[0]->count; i++)
     {
         K_ASSERT(a, (a->cells[0]->cells[i]->type == KVAL_SYM),
@@ -272,7 +272,7 @@ kval *builtin_lambda(kenv *e, kval *a)
                  ktype_name(a->cells[0]->cells[i]->type), ktype_name(KVAL_SYM));
     }
 
-    /* Pop first two arguments and pass them to kval_lambda */
+    // Pop first two arguments and pass them to kval_lambda  
     kval *formals = kval_pop(a, 0);
     kval *body = kval_pop(a, 0);
     kval_del(a);
@@ -371,23 +371,23 @@ kval *builtin_if(kenv *e, kval *a)
     K_ASSERT_TYPE("if", a, 1, KVAL_QEXPR);
     K_ASSERT_TYPE("if", a, 2, KVAL_QEXPR);
 
-    /* Mark Both Expressions as evaluable */
+    // Mark Both Expressions as evaluable  
     kval *x;
     a->cells[1]->type = KVAL_SEXPR;
     a->cells[2]->type = KVAL_SEXPR;
 
     if (a->cells[0]->num)
     {
-        /* If condition is true evaluate first expression */
+        // If condition is true evaluate first expression  
         x = kval_eval(e, kval_pop(a, 1));
     }
     else
     {
-        /* Otherwise evaluate second expression */
+        // Otherwise evaluate second expression  
         x = kval_eval(e, kval_pop(a, 2));
     }
 
-    /* Delete argument list and return */
+    // Delete argument list and return  
     kval_del(a);
     return x;
 }

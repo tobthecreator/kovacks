@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <editline/readline.h>
 #include <stdbool.h>
+#include <unistd.h>
+#include <editline/readline.h>
+
 #include "mpc.h"
 #include "kval.h"
 #include "types.h"
@@ -10,7 +12,6 @@
 #include "quotes.h"
 #include "parser.h"
 #include "builtin.h"
-#include <unistd.h>
 
 int main(int argc, char **argv)
 {
@@ -37,7 +38,7 @@ int main(int argc, char **argv)
         ",
         Number, Symbol, Sexpr, Qexpr, Expr, Kovacs, String, Comment);
 
-    puts("Kovacs Version 0.0.0.0.1");
+    puts("Kovacs Version 0.1");
     print_altered_carbon_quote();
     puts("Press Crtl+C to Exit\n");
 
@@ -57,6 +58,7 @@ int main(int argc, char **argv)
     kval *standard_libararies = kval_add(kval_sexpr(), kval_str(stdlib_filepath));
     builtin_load(e, standard_libararies);
 
+    // If there is only one argument, open the REPL
     if (argc == 1)
     {
         while (1)
@@ -64,25 +66,20 @@ int main(int argc, char **argv)
             // Prompt
             char *input = readline("kovacs> ");
 
-            // Remember prompts
+            // Give the REPL history, allowing a better UX
             add_history(input);
 
-            // Init parsing result
-            mpc_result_t result;
-
             // Parse input into result
-            // If successful, mpc_parse returns 1
+            mpc_result_t result;
             if (mpc_parse("<stdin>", input, Kovacs, &result)) // Passes r via memory address to be written directly to
             {
-                // Print parsed results
+                // Uncomment below if you want to print parser results
                 // mpc_ast_print(result.output);
-                // printf("\n\n");
 
                 kval *x = kval_eval(e, kval_read(result.output));
                 kval_println(x);
-
-                // printf("\n\n");
                 kval_del(x);
+
                 mpc_ast_delete(result.output);
             }
             else
@@ -95,16 +92,15 @@ int main(int argc, char **argv)
         }
     }
 
-    // If given files
+    // If there is more than one argument, it's probably files to run
     if (argc >= 2)
     {
         for (int i = 1; i < argc; i++)
         {
 
-            kval *args = kval_add(kval_sexpr(), kval_str(argv[i]));
+            kval *file_arguments = kval_add(kval_sexpr(), kval_str(argv[i]));
 
-            kval *x = builtin_load(e, args);
-
+            kval *x = builtin_load(e, file_arguments);
             if (x->type == KVAL_ERR)
             {
                 kval_println(x);
