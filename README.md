@@ -1,8 +1,11 @@
-# kovacs
+# Kovacs
 
 Creating my own Lisp while rewatching Altered Carbon season 1
 
-Following along with https://buildyourownlisp.com/contents
+## My goal with Kovacs
+The goal of this project was to get my feet wet with C again for the first time since college.  When I started to learn programming when I was 10, it was with C.  This is a return to my roots, getting a lot of practice with basic C project structure, pointers, and the standard C footguns (of which there are a few I didn't care to optimize my way around).  
+
+I recently learned a LISP, Scheme, and I wanted to learn about interpreters and practice C.  Instead of MAL, a friend recommended this "Build Your Own Lisp", and that's the resource I'm following along with.
 
 ## Build Instructions
 
@@ -42,7 +45,7 @@ You can run as many .k files as you'd like with:
 
 These files will execute in the sequence provided.
 
-# Kovacs
+# Overview
 
 The following overview is not finished. I need to find a version of this that matches my taste to get a better feel for the structure. I don't expect anyone to see or read this repo, but I want to leave a good paper trail for myself later.
 
