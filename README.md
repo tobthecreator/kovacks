@@ -2,6 +2,8 @@
 
 Creating my own Lisp while rewatching Altered Carbon season 1
 
+Following along with https://buildyourownlisp.com/contents
+
 ## Build Instructions
 
 From the main directory of this project, run
