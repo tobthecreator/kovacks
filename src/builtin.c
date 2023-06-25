@@ -102,6 +102,15 @@ kval *builtin_op(kenv *e, kval *kv, char *op)
     return x;
 }
 
+// #################
+//  List Functions #
+// #################
+kval *builtin_list(kenv *e, kval *a)
+{
+    a->type = KVAL_QEXPR;
+    return a;
+}
+
 kval *builtin_head(kenv *e, kval *a)
 {
     K_ASSERT(a, a->count == 1,
@@ -140,12 +149,6 @@ kval *builtin_tail(kenv *e, kval *a)
     return v;
 }
 
-kval *builtin_list(kenv *e, kval *a)
-{
-    a->type = KVAL_QEXPR;
-    return a;
-}
-
 kval *builtin_eval(kenv *e, kval *a)
 {
     K_ASSERT(a, a->count == 1,
@@ -180,6 +183,9 @@ kval *builtin_join(kenv *e, kval *a)
     return x;
 }
 
+// #################
+//  Math Functions #
+// #################
 kval *builtin_add(kenv *e, kval *a)
 {
     return builtin_op(e, a, "+");
@@ -200,6 +206,9 @@ kval *builtin_div(kenv *e, kval *a)
     return builtin_op(e, a, "/");
 }
 
+// ########################
+//  Function... Functions #
+// ########################
 kval *builtin_def(kenv *e, kval *a)
 {
     return builtin_var(e, a, "def");
@@ -248,6 +257,9 @@ kval *builtin_var(kenv *e, kval *a, char *func)
     return kval_sexpr();
 }
 
+// #################
+//  Conditionals   #
+// #################
 kval *builtin_gt(kenv *e, kval *a)
 {
     return builtin_ord(e, a, ">");
@@ -357,6 +369,38 @@ kval *builtin_if(kenv *e, kval *a)
     return x;
 }
 
+// #################
+//  Strings        #
+// #################
+kval *builtin_error(kenv *e, kval *a)
+{
+    K_ASSERT_NUM("error", a, 1);
+    K_ASSERT_TYPE("error", a, 0, KVAL_STR);
+
+    kval *err = kval_err(a->cells[0]->str);
+
+    kval_del(a);
+    return err;
+}
+
+kval *builtin_print(kenv *e, kval *a)
+{
+
+    for (int i = 0; i < a->count; i++)
+    {
+        kval_print(a->cells[i]);
+        putchar(' ');
+    }
+
+    putchar('\n');
+    kval_del(a);
+
+    return kval_sexpr();
+}
+
+// #################
+// Files           #
+// #################
 kval *builtin_load(kenv *e, kval *a)
 {
     K_ASSERT_NUM("load", a, 1);
@@ -367,7 +411,6 @@ kval *builtin_load(kenv *e, kval *a)
     {
 
         kval *expr = kval_read(r.output);
-        // mpc_ast_print(r.output);
         mpc_ast_delete(r.output);
 
         while (expr->count)
@@ -394,30 +437,4 @@ kval *builtin_load(kenv *e, kval *a)
     kval_del(a);
 
     return err;
-}
-
-kval *builtin_error(kenv *e, kval *a)
-{
-    K_ASSERT_NUM("error", a, 1);
-    K_ASSERT_TYPE("error", a, 0, KVAL_STR);
-
-    kval *err = kval_err(a->cells[0]->str);
-
-    kval_del(a);
-    return err;
-}
-
-kval *builtin_print(kenv *e, kval *a)
-{
-
-    for (int i = 0; i < a->count; i++)
-    {
-        kval_print(a->cells[i]);
-        putchar(' ');
-    }
-
-    putchar('\n');
-    kval_del(a);
-
-    return kval_sexpr();
 }
