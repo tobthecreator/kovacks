@@ -6,6 +6,9 @@
 #include "types.h"
 #include "kenv.h"
 
+// ###############
+//  Constructors #
+// ###############
 kval *kval_num(long num)
 {
     kval *kv = malloc(sizeof(kval));
@@ -93,6 +96,18 @@ kval *kval_lambda(kval *formals, kval *body)
     return kv;
 }
 
+kval *kval_str(char *s)
+{
+    kval *v = malloc(sizeof(kval));
+    v->type = KVAL_STR;
+    v->str = malloc(strlen(s) + 1);
+    strcpy(v->str, s);
+    return v;
+}
+
+// ###############
+//  Eval         #
+// ###############
 kval *kval_eval(kenv *e, kval *kv)
 {
     if (kv->type == KVAL_SYM)
@@ -161,109 +176,9 @@ kval *kval_eval_sexpr(kenv *e, kval *kv)
     return result;
 }
 
-kval *kval_pop(kval *kv, int i)
-{
-    kval *x = kv->cells[i];
-
-    /* Shift memory after the item at "i" over the top */
-    memmove(
-        &kv->cells[i],
-        &kv->cells[i + 1],
-        sizeof(kval *) * (kv->count - i - 1));
-
-    kv->count--;
-
-    /* Reallocate memory */
-    kv->cells = realloc(kv->cells, sizeof(kval *) * kv->count);
-
-    return x;
-}
-
-kval *kval_take(kval *v, int i)
-{
-    kval *x = kval_pop(v, i);
-    kval_del(v);
-    return x;
-}
-
-void kval_println(kval *kv)
-{
-    kval_print(kv);
-    putchar('\n');
-}
-
-void kval_print(kval *kv)
-{
-    switch (kv->type)
-    {
-    case KVAL_NUM:
-        printf("%li", kv->num);
-        break;
-
-    case KVAL_ERR:
-        printf("Error: %s", kv->err);
-        break;
-
-    case KVAL_SYM:
-        printf("%s", kv->sym);
-        break;
-
-    case KVAL_SEXPR:
-        kval_expr_print(kv, '(', ')');
-        break;
-
-    case KVAL_QEXPR:
-        kval_expr_print(kv, '{', '}');
-        break;
-
-    case KVAL_STR:
-        kval_print_str(kv);
-        break;
-
-    case KVAL_FUN:
-        if (kv->fun)
-        {
-            printf("<builtin>");
-        }
-        else
-        {
-            printf("(\\ ");
-            kval_print(kv->formals);
-            putchar(' ');
-            kval_print(kv->body);
-            putchar(')');
-        }
-    }
-}
-
-void kval_print_str(kval *v)
-{
-    char *escaped = malloc(strlen(v->str) + 1);
-    strcpy(escaped, v->str);
-
-    escaped = mpcf_escape(escaped);
-
-    printf("\"%s\"", escaped);
-
-    free(escaped);
-}
-
-void kval_expr_print(kval *kv, char open, char close)
-{
-    putchar(open);
-    for (int i = 0; i < kv->count; i++)
-    {
-
-        kval_print(kv->cells[i]);
-
-        if (i != (kv->count - 1))
-        {
-            putchar(' ');
-        }
-    }
-    putchar(close);
-}
-
+// ################
+//  Deconstructor #
+// ################
 void kval_del(kval *kv)
 {
     switch (kv->type)
@@ -312,6 +227,9 @@ void kval_del(kval *kv)
     free(kv);
 }
 
+// ###############
+//  Read         #
+// ###############
 kval *kval_read(mpc_ast_t *ast)
 {
 
@@ -369,15 +287,6 @@ kval *kval_read(mpc_ast_t *ast)
     return x;
 }
 
-kval *kval_add(kval *kv, kval *new_cell)
-{
-    kv->count++;
-    kv->cells = realloc(kv->cells, sizeof(kval *) * kv->count);
-    kv->cells[kv->count - 1] = new_cell;
-
-    return kv;
-}
-
 kval *kval_read_num(mpc_ast_t *ast)
 {
     // errno is from <errno.h>, a header that provides error codes and their constants
@@ -389,6 +298,58 @@ kval *kval_read_num(mpc_ast_t *ast)
     return x_out_of_range
                ? kval_err(KERR_BAD_NUM)
                : kval_num(x);
+}
+
+kval *kval_read_str(mpc_ast_t *t)
+{
+    t->contents[strlen(t->contents) - 1] = '\0';
+
+    char *unescaped = malloc(strlen(t->contents + 1) + 1);
+    strcpy(unescaped, t->contents + 1);
+    unescaped = mpcf_unescape(unescaped);
+
+    kval *str = kval_str(unescaped);
+
+    free(unescaped);
+
+    return str;
+}
+
+// ###############
+//  Helpers      #
+// ###############
+kval *kval_pop(kval *kv, int i)
+{
+    kval *x = kv->cells[i];
+
+    /* Shift memory after the item at "i" over the top */
+    memmove(
+        &kv->cells[i],
+        &kv->cells[i + 1],
+        sizeof(kval *) * (kv->count - i - 1));
+
+    kv->count--;
+
+    /* Reallocate memory */
+    kv->cells = realloc(kv->cells, sizeof(kval *) * kv->count);
+
+    return x;
+}
+
+kval *kval_take(kval *v, int i)
+{
+    kval *x = kval_pop(v, i);
+    kval_del(v);
+    return x;
+}
+
+kval *kval_add(kval *kv, kval *new_cell)
+{
+    kv->count++;
+    kv->cells = realloc(kv->cells, sizeof(kval *) * kv->count);
+    kv->cells[kv->count - 1] = new_cell;
+
+    return kv;
 }
 
 kval *kval_join(kval *x, kval *y)
@@ -465,7 +426,6 @@ kval *kval_copy(kval *v)
     return x;
 }
 
-// Evaluate a kval function
 kval *kval_call(kenv *e, kval *f, kval *a)
 {
 
@@ -625,26 +585,83 @@ int kval_eq(kval *x, kval *y)
     return 0;
 }
 
-kval *kval_str(char *s)
+// ###############
+//  Print        #
+// ###############
+void kval_println(kval *kv)
 {
-    kval *v = malloc(sizeof(kval));
-    v->type = KVAL_STR;
-    v->str = malloc(strlen(s) + 1);
-    strcpy(v->str, s);
-    return v;
+    kval_print(kv);
+    putchar('\n');
 }
 
-kval *kval_read_str(mpc_ast_t *t)
+void kval_print(kval *kv)
 {
-    t->contents[strlen(t->contents) - 1] = '\0';
+    switch (kv->type)
+    {
+    case KVAL_NUM:
+        printf("%li", kv->num);
+        break;
 
-    char *unescaped = malloc(strlen(t->contents + 1) + 1);
-    strcpy(unescaped, t->contents + 1);
-    unescaped = mpcf_unescape(unescaped);
+    case KVAL_ERR:
+        printf("Error: %s", kv->err);
+        break;
 
-    kval *str = kval_str(unescaped);
+    case KVAL_SYM:
+        printf("%s", kv->sym);
+        break;
 
-    free(unescaped);
+    case KVAL_SEXPR:
+        kval_print_expr(kv, '(', ')');
+        break;
 
-    return str;
+    case KVAL_QEXPR:
+        kval_print_expr(kv, '{', '}');
+        break;
+
+    case KVAL_STR:
+        kval_print_str(kv);
+        break;
+
+    case KVAL_FUN:
+        if (kv->fun)
+        {
+            printf("<builtin>");
+        }
+        else
+        {
+            printf("(\\ ");
+            kval_print(kv->formals);
+            putchar(' ');
+            kval_print(kv->body);
+            putchar(')');
+        }
+    }
+}
+
+void kval_print_str(kval *v)
+{
+    char *escaped = malloc(strlen(v->str) + 1);
+    strcpy(escaped, v->str);
+
+    escaped = mpcf_escape(escaped);
+
+    printf("\"%s\"", escaped);
+
+    free(escaped);
+}
+
+void kval_print_expr(kval *kv, char open, char close)
+{
+    putchar(open);
+    for (int i = 0; i < kv->count; i++)
+    {
+
+        kval_print(kv->cells[i]);
+
+        if (i != (kv->count - 1))
+        {
+            putchar(' ');
+        }
+    }
+    putchar(close);
 }
