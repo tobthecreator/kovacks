@@ -3,18 +3,20 @@
 #include "builtin.h"
 #include "errors.h"
 
+// Constructor
 kenv *kenv_init(void)
 {
     kenv *e = malloc(sizeof(kenv));
 
     e->count = 0;
-    e->syms = NULL; // empty **
-    e->vals = NULL; // empty **
+    e->syms = NULL;
+    e->vals = NULL;
     e->parent = NULL;
 
     return e;
 }
 
+// Deconstructor
 void kenv_del(kenv *e)
 {
     for (int i = 0; i < e->count; i++)
@@ -27,6 +29,9 @@ void kenv_del(kenv *e)
     free(e);
 }
 
+// ############
+//  Helpers   #
+// ############
 kval *kenv_get(kenv *e, kval *k)
 {
     // Look through known variables
@@ -93,29 +98,6 @@ void kenv_add_builtin(kenv *e, char *name, kbuiltin func)
     kenv_put(e, k, v);
     kval_del(k);
     kval_del(v);
-}
-
-kval *builtin_lambda(kenv *e, kval *a)
-{
-    /* Check two arguments, each of which are Q-Expressions */
-    K_ASSERT_NUM("\\", a, 2);
-    K_ASSERT_TYPE("\\", a, 0, KVAL_QEXPR);
-    K_ASSERT_TYPE("\\", a, 1, KVAL_QEXPR);
-
-    /* Check first Q-Expression contains only Symbols */
-    for (int i = 0; i < a->cells[0]->count; i++)
-    {
-        K_ASSERT(a, (a->cells[0]->cells[i]->type == KVAL_SYM),
-                 "Cannot define non-symbol. Got %s, Expected %s.",
-                 ktype_name(a->cells[0]->cells[i]->type), ktype_name(KVAL_SYM));
-    }
-
-    /* Pop first two arguments and pass them to kval_lambda */
-    kval *formals = kval_pop(a, 0);
-    kval *body = kval_pop(a, 0);
-    kval_del(a);
-
-    return kval_lambda(formals, body);
 }
 
 void kenv_add_builtins(kenv *e)

@@ -257,6 +257,29 @@ kval *builtin_var(kenv *e, kval *a, char *func)
     return kval_sexpr();
 }
 
+kval *builtin_lambda(kenv *e, kval *a)
+{
+    /* Check two arguments, each of which are Q-Expressions */
+    K_ASSERT_NUM("\\", a, 2);
+    K_ASSERT_TYPE("\\", a, 0, KVAL_QEXPR);
+    K_ASSERT_TYPE("\\", a, 1, KVAL_QEXPR);
+
+    /* Check first Q-Expression contains only Symbols */
+    for (int i = 0; i < a->cells[0]->count; i++)
+    {
+        K_ASSERT(a, (a->cells[0]->cells[i]->type == KVAL_SYM),
+                 "Cannot define non-symbol. Got %s, Expected %s.",
+                 ktype_name(a->cells[0]->cells[i]->type), ktype_name(KVAL_SYM));
+    }
+
+    /* Pop first two arguments and pass them to kval_lambda */
+    kval *formals = kval_pop(a, 0);
+    kval *body = kval_pop(a, 0);
+    kval_del(a);
+
+    return kval_lambda(formals, body);
+}
+
 // #################
 //  Conditionals   #
 // #################

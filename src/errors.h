@@ -1,8 +1,6 @@
 #ifndef errors_h
 #define errors_h
 
-// #include "types.h"
-
 #define KERR_DIV_ZERO "Division by zero"
 #define KERR_BAD_OP "Invalid operation"
 #define KERR_BAD_NUM "Invalid number"

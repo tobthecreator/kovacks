@@ -31,6 +31,7 @@ kval *builtin_div(kenv *e, kval *a);
 kval *builtin_def(kenv *e, kval *a);
 kval *builtin_put(kenv *e, kval *a);
 kval *builtin_var(kenv *e, kval *a, char *func);
+kval *builtin_lambda(kenv *e, kval *a);
 
 // #################
 //  Conditionals   #
