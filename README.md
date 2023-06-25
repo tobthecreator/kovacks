@@ -40,4 +40,46 @@ You can run as many .k files as you'd like with:
 
 These files will execute in the sequence provided.
 
-# Kovacs Definitions
+# Kovacs
+
+Kovacs is written in Polish Notation.
+
+## Standard Library
+
+You can read the full standard library in `src/libs`. The standard library is loaded at runtime, and also accompanies the executable for the REPL. Puruse it at your leasure.
+
+## Numbers... Well, just Integers
+
+Instead of `1 + 2`, everything is written `+ 1 2`. Or, `<operation> <arg1> ... <argn>`
+
+This is a pet project, so right now only integer numbers are supported. The behavior of those integers during division and multiplication should handle exactly like C.
+
+## Strings
+
+We do have strings though! Strings are double quoted.
+
+You cannot do a whole lot with strings at the moment.
+
+You can print store them as variable: `(def {x} "hello!")`
+
+You can print them as strings: `print x` or `(print x)`
+
+Or as errors: `error x` or `(error x)`
+
+## Lists
+
+Lists are defined by curly brackets, `{ }`.
+
+You can create a list with the `list` operation: `(list 1 2 3 4)`.
+
+You can get the length of a list: `(len (list 1 2 3 4))`
+
+Lists are 0-indexed. To get the nth item, you can use the `nth` function: `(nth (list 1 2 3 4))`
+
+## Variables
+
+You can declare a variable using `def`.
+
+## Comments
+
+Comments are left with `;`. Only single-line comments are supported right now
